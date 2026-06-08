@@ -24,7 +24,7 @@ function valor(id) {
   return document.getElementById(id).value;
 }
 
-async function salvarProcesso() {
+window.salvarProcesso = async function () {
 
   const empresa = valor("empresa").trim();
   const cnpj = valor("cnpj").trim();
@@ -46,7 +46,7 @@ async function salvarProcesso() {
   if (!empresa || !fatura) {
     alert("Preencha Empresa e Fatura.");
     return;
-  }
+  };
 
   const processo = {
     empresa,
