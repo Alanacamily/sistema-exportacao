@@ -705,3 +705,10 @@ function dataArquivo() {
 
 renderizarTabela();
 renderizarLixeira();
+
+window.salvarProcesso = salvarProcesso;
+window.renderizarTabela = renderizarTabela;
+window.abrirLixeira = abrirLixeira;
+window.fecharLixeira = fecharLixeira;
+window.exportarExcel = exportarExcel;
+window.exportarPDF = exportarPDF;
