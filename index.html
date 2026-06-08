@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Export System</title>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+</head>
+
+<body>
+
+  <header class="topbar">
+    <div>
+      <h1>📦 EXPORT SYSTEM • MULTILOG TECH</h1>
+      <p>Controle de Processos de Exportação</p>
+    </div>
+
+    <button class="trash-btn" onclick="abrirLixeira()">
+      🗑️ Lixeira <span id="contadorLixeira">0</span>
+    </button>
+  </header>
+
+  <section class="dashboard">
+    <div class="card">
+      <p>Total</p>
+      <h2 id="totalProcessos">0</h2>
+    </div>
+
+    <div class="card">
+      <p>Pendentes</p>
+      <h2 id="totalPendentes">0</h2>
+    </div>
+
+    <div class="card">
+      <p>Cobrados</p>
+      <h2 id="totalCobrados">0</h2>
+    </div>
+  </section>
+
+  <main class="container">
+
+    <section class="form-box">
+      <h2>Novo Processo</h2>
+
+      <div class="grid">
+        <input id="empresa" placeholder="Empresa" />
+        <input id="cnpj" placeholder="CNPJ" />
+        <input id="quantidade" type="number" placeholder="Qtd. Veículos" />
+        <input id="dataAverbacao" type="date" />
+        <input id="crt" placeholder="CRT" />
+        <input id="mercadoria" placeholder="Mercadoria" />
+        <input id="fatura" placeholder="Fatura" />
+        <input id="observacao" placeholder="Observação Multilog" />
+        <input id="numeroVeiculo" placeholder="Número do Veículo" />
+        <input id="transporte" placeholder="Transporte" />
+        <input id="pesoLiquido" type="number" step="0.01" placeholder="Peso Líquido" />
+        <input id="numeroDue" placeholder="Número da DUE" />
+        <input id="lpco" placeholder="LPCO" />
+      </div>
+
+      <div class="checks">
+        <label>
+          <input type="radio" name="due" value="Exacta" checked />
+          DU-E Exacta
+        </label>
+
+        <label>
+          <input type="radio" name="due" value="Parceiro" />
+          DU-E Parceiro
+        </label>
+
+        <label>
+          <input type="radio" name="co" value="Exacta" checked />
+          C.O Exacta
+        </label>
+
+        <label>
+          <input type="radio" name="co" value="Parceiro" />
+          C.O Parceiro
+        </label>
+
+        <label>
+          <input id="fracionado" type="checkbox" />
+          Fracionado
+        </label>
+
+        <label>
+          <input id="aduanaIntegrada" type="checkbox" />
+          🛃 Aduana Integrada
+        </label>
+      </div>
+
+      <button id="btnSalvar" onclick="salvarProcesso()">
+        Salvar Processo
+      </button>
+    </section>
+
+    <section class="filters">
+      <input
+        id="busca"
+        placeholder="Buscar por empresa, CNPJ, fatura, DUE, CRT ou veículo"
+        oninput="renderizarTabela()"
+      />
+
+      <input
+        id="filtroData"
+        type="date"
+        onchange="renderizarTabela()"
+      />
+
+      <button onclick="exportarExcel()">
+        📊 Excel
+      </button>
+
+      <button onclick="exportarPDF()">
+        📄 PDF
+      </button>
+    </section>
+
+    <section class="table-box">
+      <table>
+        <thead>
+          <tr>
+            <th>Empresa</th>
+            <th>CNPJ</th>
+            <th>Qtd</th>
+            <th>Liberado</th>
+            <th>C.R.T</th>
+            <th>Mercadoria</th>
+            <th>Fatura</th>
+            <th>Observações Multilog</th>
+            <th>Veículo</th>
+            <th>Transporte</th>
+            <th>Peso Líquido</th>
+            <th>DU-E</th>
+            <th>DU-E Exacta</th>
+            <th>DU-E Parceiro</th>
+            <th>C.O Exacta</th>
+            <th>C.O Parceiro</th>
+            <th>LPCO</th>
+          </tr>
+        </thead>
+
+        <tbody id="tabelaProcessos"></tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <div id="modalLixeira" class="modal">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h2>Lixeira</h2>
+
+        <button onclick="fecharLixeira()">
+          X
+        </button>
+      </div>
+
+      <div id="listaLixeira"></div>
+
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+
+</body>
+</html>

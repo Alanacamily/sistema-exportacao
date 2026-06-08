@@ -1,0 +1,296 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #0f172a;
+  color: white;
+}
+
+.topbar {
+  background: #020617;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 3px solid #2563eb;
+}
+
+.topbar h1 {
+  color: #38bdf8;
+}
+
+.topbar p {
+  color: #94a3b8;
+  margin-top: 5px;
+}
+
+.trash-btn {
+  background: #1e293b;
+  color: white;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  padding: 20px;
+}
+
+.card {
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 10px;
+  border-left: 5px solid #38bdf8;
+}
+
+.card p {
+  color: #94a3b8;
+}
+
+.card h2 {
+  margin-top: 10px;
+  font-size: 30px;
+}
+
+.container {
+  padding: 20px;
+}
+
+.form-box,
+.filters,
+.table-box {
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.form-box h2 {
+  margin-bottom: 15px;
+  color: #38bdf8;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+input {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: white;
+}
+
+input::placeholder {
+  color: #94a3b8;
+}
+
+.checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.checks label {
+  background: #0f172a;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+}
+
+button {
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+#btnSalvar {
+  background: #2563eb;
+  color: white;
+}
+
+.filters {
+  display: flex;
+  gap: 10px;
+}
+
+.filters input {
+  flex: 1;
+}
+
+.filters button {
+  background: #2563eb;
+  color: white;
+}
+
+.table-box {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1800px;
+}
+
+th {
+  background: #020617;
+  color: #38bdf8;
+  padding: 12px;
+  text-align: left;
+  font-size: 13px;
+}
+
+td {
+  padding: 10px;
+  border-bottom: 1px solid #334155;
+  font-size: 13px;
+}
+
+tr.cobrado {
+  background: #14532d;
+}
+
+.linha-fracionado {
+  background: #d9d9d9;
+  color: #000;
+  text-align: center;
+  font-weight: bold;
+  font-size: 16px;
+  border: 1px solid #000;
+  letter-spacing: 1px;
+}
+
+.linha-aduana {
+  background: #d9d9d9;
+  color: #000;
+  text-align: center;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.btn-edit {
+  background: #f59e0b;
+  color: black;
+  margin-right: 5px;
+}
+
+.btn-delete {
+  background: #dc2626;
+  color: white;
+}
+
+.btn-financeiro {
+  background: #64748b;
+  color: white;
+}
+
+.btn-financeiro-ok {
+  background: #22c55e;
+  color: white;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: #1e293b;
+  width: 80%;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modal-header button {
+  background: #dc2626;
+  color: white;
+}
+
+.lixeira-item {
+  background: #0f172a;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+}
+
+.btn-restore {
+  background: #22c55e;
+  color: white;
+  margin-right: 5px;
+}
+
+.btn-final-delete {
+  background: #991b1b;
+  color: white;
+}
+
+@media (max-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filters {
+    flex-direction: column;
+  }
+
+  .topbar {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+}
+.linha-fracionado {
+  background: #d9d9d9;
+  color: #000;
+  text-align: center;
+  font-weight: bold;
+  font-size: 16px;
+  border: 1px solid #000;
+  letter-spacing: 1px;
+}
+
+.linha-aduana {
+  background: #d9d9d9;
+  color: #000;
+  text-align: center;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
