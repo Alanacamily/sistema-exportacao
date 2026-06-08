@@ -69,19 +69,24 @@ async function salvarProcesso() {
     usuario_lancamento: "Alana"
   };
 
-  const { error } = await banco
-    .from("processos")
-    .insert([processoBanco]);
+  try {
+    const { error } = await banco
+      .from("processos")
+      .insert([processoBanco]);
 
-  if (error) {
-    console.error("Erro ao salvar no Supabase:", error);
-    alert("Erro ao salvar no banco. Veja o console.");
-    return;
+    if (error) {
+      console.error("Erro Supabase:", error);
+      alert("Erro ao salvar no Supabase. Veja o Console.");
+      return;
+    }
+
+    alert("Processo salvo no Supabase!");
+    limparFormulario();
+
+  } catch (erro) {
+    console.error("Falha geral:", erro);
+    alert("Falha ao conectar com o banco.");
   }
-
-  alert("Processo salvo no Supabase!");
-
-  limparFormulario();
 }
 
   const processo = {
