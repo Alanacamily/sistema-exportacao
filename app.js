@@ -123,17 +123,43 @@ async function salvarProcesso() {
       : processos[editandoIndex].dataLancamento
   };
 
-  if (editandoIndex === null) {
-    processos.push(processo);
-  } else {
-    processos[editandoIndex] = processo;
-    editandoIndex = null;
-    document.getElementById("btnSalvar").innerText = "Salvar Processo";
+try {
+  const { error } = await banco
+    .from("processos")
+    .insert([{
+      empresa: processo.empresa,
+      cnpj: processo.cnpj,
+      quantidade: processo.quantidade || null,
+      data_averbacao: processo.dataAverbacao || null,
+      crt: processo.crt,
+      mercadoria: processo.mercadoria,
+      fatura: processo.fatura,
+      observacao: processo.observacao,
+      numero_veiculo: processo.numeroVeiculo,
+      transporte: processo.transporte,
+      peso_liquido: processo.pesoLiquido || null,
+      numero_due: processo.numeroDue,
+      lpco: processo.lpco,
+      responsavel_due: processo.responsavelDue,
+      responsavel_co: processo.responsavelCo,
+      fracionado: processo.fracionado,
+      aduana_integrada: processo.aduanaIntegrada,
+      financeiro_cobrou: processo.financeiroCobrou,
+      usuario_lancamento: "Alana"
+    }]);
+
+  if (error) {
+    console.error("Erro Supabase:", error);
+    alert("Erro ao salvar no Supabase. Veja o Console.");
+    return;
   }
 
-  salvarLocal();
+  alert("Processo salvo no Supabase!");
   limparFormulario();
-  renderizarTabela();
+
+} catch (erro) {
+  console.error("Falha geral:", erro);
+  alert("Falha ao conectar com o banco.");
 }
 
 function limparFormulario() {
