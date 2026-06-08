@@ -24,17 +24,65 @@ function valor(id) {
   return document.getElementById(id).value;
 }
 
-function salvarProcesso() {
- const empresa = valor("empresa").trim();
- const cnpj = document.getElementById("cnpj") ? valor("cnpj").trim() : "";
- const fatura = valor("fatura").trim();
- const pesoLiquido = valor("pesoLiquido").trim();
- const aduanaIntegrada = document.getElementById("aduanaIntegrada").checked;
+async function salvarProcesso() {
+  const empresa = valor("empresa").trim();
+  const cnpj = document.getElementById("cnpj") ? valor("cnpj").trim() : "";
+  const fatura = valor("fatura").trim();
+  const pesoLiquido = valor("pesoLiquido").trim();
+  const aduanaIntegrada = document.getElementById("aduanaIntegrada").checked;
 
   if (!empresa || !fatura) {
     alert("Preencha pelo menos Empresa e Fatura.");
     return;
   }
+
+  const processoBanco = {
+    empresa: empresa,
+    cnpj: cnpj,
+    fatura: fatura,
+
+    quantidade: aduanaIntegrada ? null : valor("quantidade"),
+    data_averbacao: aduanaIntegrada ? null : valor("dataAverbacao"),
+    crt: aduanaIntegrada ? null : valor("crt"),
+    mercadoria: aduanaIntegrada ? null : valor("mercadoria"),
+    observacao: aduanaIntegrada ? null : valor("observacao"),
+    numero_veiculo: aduanaIntegrada ? null : valor("numeroVeiculo"),
+    transporte: aduanaIntegrada ? null : valor("transporte"),
+    peso_liquido: pesoLiquido || null,
+    numero_due: aduanaIntegrada ? null : valor("numeroDue"),
+    lpco: aduanaIntegrada ? null : valor("lpco"),
+
+    responsavel_due: aduanaIntegrada
+      ? null
+      : document.querySelector('input[name="due"]:checked').value,
+
+    responsavel_co: aduanaIntegrada
+      ? null
+      : document.querySelector('input[name="co"]:checked').value,
+
+    fracionado: aduanaIntegrada
+      ? false
+      : document.getElementById("fracionado").checked,
+
+    aduana_integrada: aduanaIntegrada,
+    financeiro_cobrou: false,
+    usuario_lancamento: "Alana"
+  };
+
+  const { error } = await banco
+    .from("processos")
+    .insert([processoBanco]);
+
+  if (error) {
+    console.error("Erro ao salvar no Supabase:", error);
+    alert("Erro ao salvar no banco. Veja o console.");
+    return;
+  }
+
+  alert("Processo salvo no Supabase!");
+
+  limparFormulario();
+}
 
   const processo = {
     empresa: empresa,
