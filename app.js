@@ -25,68 +25,86 @@ function valor(id) {
 }
 
 async function salvarProcesso() {
+
   const empresa = valor("empresa").trim();
-  const cnpj = document.getElementById("cnpj") ? valor("cnpj").trim() : "";
+  const cnpj = valor("cnpj").trim();
+  const quantidade = valor("quantidade");
+  const dataAverbacao = valor("dataAverbacao");
+  const crt = valor("crt").trim();
+  const mercadoria = valor("mercadoria").trim();
   const fatura = valor("fatura").trim();
-  const pesoLiquido = valor("pesoLiquido").trim();
-  const aduanaIntegrada = document.getElementById("aduanaIntegrada").checked;
+  const observacao = valor("observacao").trim();
+  const numeroVeiculo = valor("numeroVeiculo").trim();
+  const transporte = valor("transporte").trim();
+  const pesoLiquido = valor("pesoLiquido");
+  const numeroDue = valor("numeroDue").trim();
+  const lpco = valor("lpco").trim();
+
+  const aduanaIntegrada =
+    document.getElementById("aduanaIntegrada").checked;
 
   if (!empresa || !fatura) {
-    alert("Preencha pelo menos Empresa e Fatura.");
+    alert("Preencha Empresa e Fatura.");
     return;
   }
 
-  const processoBanco = {
-    empresa: empresa,
-    cnpj: cnpj,
-    fatura: fatura,
-
-    quantidade: aduanaIntegrada ? null : valor("quantidade"),
-    data_averbacao: aduanaIntegrada ? null : valor("dataAverbacao"),
-    crt: aduanaIntegrada ? null : valor("crt"),
-    mercadoria: aduanaIntegrada ? null : valor("mercadoria"),
-    observacao: aduanaIntegrada ? null : valor("observacao"),
-    numero_veiculo: aduanaIntegrada ? null : valor("numeroVeiculo"),
-    transporte: aduanaIntegrada ? null : valor("transporte"),
+  const processo = {
+    empresa,
+    cnpj,
+    quantidade,
+    data_averbacao: dataAverbacao || null,
+    crt,
+    mercadoria,
+    fatura,
+    observacao,
+    numero_veiculo: numeroVeiculo,
+    transporte,
     peso_liquido: pesoLiquido || null,
-    numero_due: aduanaIntegrada ? null : valor("numeroDue"),
-    lpco: aduanaIntegrada ? null : valor("lpco"),
+    numero_due: numeroDue,
+    lpco,
 
-    responsavel_due: aduanaIntegrada
-      ? null
-      : document.querySelector('input[name="due"]:checked').value,
+    responsavel_due:
+      document.querySelector('input[name="due"]:checked')?.value || "",
 
-    responsavel_co: aduanaIntegrada
-      ? null
-      : document.querySelector('input[name="co"]:checked').value,
+    responsavel_co:
+      document.querySelector('input[name="co"]:checked')?.value || "",
 
-    fracionado: aduanaIntegrada
-      ? false
-      : document.getElementById("fracionado").checked,
+    fracionado:
+      document.getElementById("fracionado").checked,
 
     aduana_integrada: aduanaIntegrada,
+
     financeiro_cobrou: false,
+
     usuario_lancamento: "Alana"
   };
 
   try {
+
     const { error } = await banco
       .from("processos")
-      .insert([processoBanco]);
+      .insert([processo]);
 
     if (error) {
-      console.error("Erro Supabase:", error);
-      alert("Erro ao salvar no Supabase. Veja o Console.");
+      console.error(error);
+      alert("Erro ao salvar no Supabase");
       return;
     }
 
-    alert("Processo salvo no Supabase!");
+    alert("Processo salvo com sucesso!");
+
     limparFormulario();
 
+    renderizarTabela();
+
   } catch (erro) {
-    console.error("Falha geral:", erro);
+
+    console.error(erro);
+
     alert("Falha ao conectar com o banco.");
+
   }
+
 }
 
   const processo = {
