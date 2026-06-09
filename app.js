@@ -23,6 +23,47 @@ function valor(id) {
   return document.getElementById(id).value;
 }
 
+async function carregarProcessos() {
+  const { data, error } = await banco
+    .from("processos")
+    .select("*")
+    .eq("excluido", false)
+    .order("data_lancamento", { ascending: false });
+
+  if (error) {
+    console.error("Erro ao carregar processos:", error);
+    alert("Erro ao carregar processos.");
+    return;
+  }
+
+  processos = data.map(function(p) {
+    return {
+      id: p.id,
+      empresa: p.empresa || "",
+      cnpj: p.cnpj || "",
+      quantidade: p.quantidade || "",
+      dataAverbacao: p.data_averbacao || "",
+      crt: p.crt || "",
+      mercadoria: p.mercadoria || "",
+      fatura: p.fatura || "",
+      observacao: p.observacao || "",
+      numeroVeiculo: p.numero_veiculo || "",
+      transporte: p.transporte || "",
+      pesoLiquido: p.peso_liquido || "",
+      numeroDue: p.numero_due || "",
+      lpco: p.lpco || "",
+      responsavelDue: p.responsavel_due || "",
+      responsavelCo: p.responsavel_co || "",
+      fracionado: !!p.fracionado,
+      aduanaIntegrada: !!p.aduana_integrada,
+      financeiroCobrou: !!p.financeiro_cobrou,
+      dataLancamento: p.data_lancamento || ""
+    };
+  });
+
+  renderizarTabela();
+}
+
 window.salvarProcesso = async function () {
   const empresa = valor("empresa").trim();
   const cnpj = valor("cnpj").trim();
@@ -93,6 +134,8 @@ window.salvarProcesso = async function () {
     alert("Processo salvo com sucesso!");
 
     limparFormulario();
+
+   await carregarProcessos();
 
   } catch (erro) {
     console.error("Falha geral:", erro);
@@ -365,7 +408,7 @@ function excluirProcesso(index) {
   lixeira.push(removido);
 
   salvarLocal();
-  renderizarTabela();
+  carregarProcessos();
   renderizarLixeira();
 }
 
