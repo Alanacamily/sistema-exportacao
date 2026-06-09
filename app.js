@@ -26,10 +26,11 @@ function valor(id) {
 async function carregarProcessos() {
   const { data, error } = await banco
     .from("processos")
-    .select("*");
+    .select("*")
+    .eq("excluido", false);
 
   if (error) {
-    console.error("Erro ao carregar:", error);
+    console.error("Erro ao carregar processos:", error);
     return;
   }
 
@@ -403,19 +404,13 @@ window.excluirProcesso = async function(index) {
 
   const id = processos[index].id;
 
-  const { data, error } = await banco
+  const { error } = await banco
     .from("processos")
-    .update({
-      excluido: true
-    })
-    .eq("id", id)
-    .select();
-
-  console.log("ID:", id);
-  console.log("DATA:", data);
-  console.log("ERROR:", error);
+    .update({ excluido: true })
+    .eq("id", id);
 
   if (error) {
+    console.error("Erro ao mover para lixeira:", error);
     alert("Erro ao mover para a lixeira.");
     return;
   }
@@ -443,7 +438,6 @@ async function carregarLixeira() {
 
   if (error) {
     console.error("Erro ao carregar lixeira:", error);
-    alert("Erro ao carregar lixeira.");
     return;
   }
 
@@ -454,8 +448,7 @@ async function carregarLixeira() {
       cnpj: p.cnpj || "",
       fatura: p.fatura || "",
       numeroDue: p.numero_due || "",
-      aduanaIntegrada: p.aduana_integrada || false,
-      dataExclusao: p.data_lancamento || ""
+      aduanaIntegrada: p.aduana_integrada || false
     };
   });
 
@@ -544,7 +537,6 @@ window.excluirDefinitivo = async function(index) {
 
   await carregarLixeira();
 };
-
 
 function alternarFinanceiro(index) {
   processos[index].financeiroCobrou = !processos[index].financeiroCobrou;
