@@ -538,12 +538,27 @@ window.excluirDefinitivo = async function(index) {
   await carregarLixeira();
 };
 
-function alternarFinanceiro(index) {
-  processos[index].financeiroCobrou = !processos[index].financeiroCobrou;
+window.alternarFinanceiro = async function(index) {
 
-  salvarLocal();
-  renderizarTabela();
-}
+  const processo = processos[index];
+
+  const novoStatus = !processo.financeiroCobrou;
+
+  const { error } = await banco
+    .from("processos")
+    .update({
+      financeiro_cobrou: novoStatus
+    })
+    .eq("id", processo.id);
+
+  if (error) {
+    console.error("Erro ao atualizar financeiro:", error);
+    alert("Erro ao atualizar financeiro.");
+    return;
+  }
+
+  await carregarProcessos();
+};
 
 function atualizarDashboard() {
   const total = processos.length;
