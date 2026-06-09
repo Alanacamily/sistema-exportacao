@@ -396,27 +396,27 @@ function editarProcesso(index) {
 }
 
 window.excluirProcesso = async function(index) {
-  if (!confirm("Deseja mover este processo para a lixeira?")) {
-    return;
-  }
-
   const id = processos[index].id;
 
-  const { error } = await banco
+  const { data, error } = await banco
     .from("processos")
     .update({
       excluido: true
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select();
+
+  console.log("ID:", id);
+  console.log("DATA:", data);
+  console.log("ERROR:", error);
 
   if (error) {
-    console.error("Erro ao excluir:", error);
     alert("Erro ao mover para a lixeira.");
     return;
   }
 
-  alert("Processo movido para a lixeira!");
-
+    alert("Processo movido para a lixeira!");
+  
   await carregarProcessos();
   await carregarLixeira();
 };
