@@ -35,6 +35,7 @@ async function carregarProcessos() {
 
   processos = data.map(function(p) {
     return {
+      id: p.id,
       empresa: p.empresa || "",
       cnpj: p.cnpj || "",
       quantidade: p.quantidade || "",
