@@ -24,7 +24,6 @@ function valor(id) {
 }
 
 async function carregarProcessos() {
-
   const { data, error } = await banco
     .from("processos")
     .select("*");
@@ -34,14 +33,8 @@ async function carregarProcessos() {
     return;
   }
 
-  processos = data;
-
-  renderizarTabela();
-}
-
   processos = data.map(function(p) {
     return {
-      id: p.id,
       empresa: p.empresa || "",
       cnpj: p.cnpj || "",
       quantidade: p.quantidade || "",
@@ -57,17 +50,17 @@ async function carregarProcessos() {
       lpco: p.lpco || "",
       responsavelDue: p.responsavel_due || "",
       responsavelCo: p.responsavel_co || "",
-      fracionado: !!p.fracionado,
-      aduanaIntegrada: !!p.aduana_integrada,
-      financeiroCobrou: !!p.financeiro_cobrou,
+      fracionado: p.fracionado || false,
+      aduanaIntegrada: p.aduana_integrada || false,
+      financeiroCobrou: p.financeiro_cobrou || false,
       dataLancamento: p.data_lancamento || ""
     };
   });
 
   renderizarTabela();
+}
 
   carregarProcessos();
-
 
 window.salvarProcesso = async function () {
   const empresa = valor("empresa").trim();
