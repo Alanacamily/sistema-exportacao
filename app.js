@@ -24,17 +24,20 @@ function valor(id) {
 }
 
 async function carregarProcessos() {
+
   const { data, error } = await banco
     .from("processos")
-    .select("*")
-    .eq("excluido", false)
-    .order("data_lancamento", { ascending: false });
+    .select("*");
 
   if (error) {
-    console.error("Erro ao carregar processos:", error);
-    alert("Erro ao carregar processos.");
+    console.error("Erro ao carregar:", error);
     return;
   }
+
+  processos = data;
+
+  renderizarTabela();
+}
 
   processos = data.map(function(p) {
     return {
@@ -62,7 +65,9 @@ async function carregarProcessos() {
   });
 
   renderizarTabela();
-}
+
+  carregarProcessos();
+
 
 window.salvarProcesso = async function () {
   const empresa = valor("empresa").trim();
