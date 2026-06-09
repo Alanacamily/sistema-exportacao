@@ -9,6 +9,16 @@ const banco = supabase.createClient(
   SUPABASE_KEY
 );
 
+console.log("APP.JS CARREGOU");
+
+const SUPABASE_URL = "https://ayekrvnqjtmpvjtrwqnd.supabase.co";
+const SUPABASE_KEY = "sb_publishable_e9EC0WSIoq3ISWipVj1TTA_a_ZG1Bz0";
+
+const banco = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
 console.log("Supabase conectado:", banco);
 
 let processos = JSON.parse(localStorage.getItem("processos")) || [];
@@ -25,7 +35,6 @@ function valor(id) {
 }
 
 window.salvarProcesso = async function () {
-
   const empresa = valor("empresa").trim();
   const cnpj = valor("cnpj").trim();
   const quantidade = valor("quantidade");
@@ -46,48 +55,49 @@ window.salvarProcesso = async function () {
   if (!empresa || !fatura) {
     alert("Preencha Empresa e Fatura.");
     return;
-  };
+  }
 
   const processo = {
-    empresa,
-    cnpj,
-    quantidade,
-    data_averbacao: dataAverbacao || null,
-    crt,
-    mercadoria,
-    fatura,
-    observacao,
-    numero_veiculo: numeroVeiculo,
-    transporte,
+    empresa: empresa,
+    cnpj: cnpj,
+    fatura: fatura,
+
+    quantidade: aduanaIntegrada ? null : quantidade || null,
+    data_averbacao: aduanaIntegrada ? null : dataAverbacao || null,
+    crt: aduanaIntegrada ? null : crt || null,
+    mercadoria: aduanaIntegrada ? null : mercadoria || null,
+    observacao: aduanaIntegrada ? null : observacao || null,
+    numero_veiculo: aduanaIntegrada ? null : numeroVeiculo || null,
+    transporte: aduanaIntegrada ? null : transporte || null,
     peso_liquido: pesoLiquido || null,
-    numero_due: numeroDue,
-    lpco,
+    numero_due: aduanaIntegrada ? null : numeroDue || null,
+    lpco: aduanaIntegrada ? null : lpco || null,
 
-    responsavel_due:
-      document.querySelector('input[name="due"]:checked')?.value || "",
+    responsavel_due: aduanaIntegrada
+      ? null
+      : document.querySelector('input[name="due"]:checked')?.value || null,
 
-    responsavel_co:
-      document.querySelector('input[name="co"]:checked')?.value || "",
+    responsavel_co: aduanaIntegrada
+      ? null
+      : document.querySelector('input[name="co"]:checked')?.value || null,
 
-    fracionado:
-      document.getElementById("fracionado").checked,
+    fracionado: aduanaIntegrada
+      ? false
+      : document.getElementById("fracionado").checked,
 
     aduana_integrada: aduanaIntegrada,
-
     financeiro_cobrou: false,
-
     usuario_lancamento: "Alana"
   };
 
   try {
-
     const { error } = await banco
       .from("processos")
       .insert([processo]);
 
     if (error) {
-      console.error(error);
-      alert("Erro ao salvar no Supabase");
+      console.error("Erro Supabase:", error);
+      alert("Erro ao salvar no Supabase.");
       return;
     }
 
@@ -95,17 +105,11 @@ window.salvarProcesso = async function () {
 
     limparFormulario();
 
-    renderizarTabela();
-
   } catch (erro) {
-
-    console.error(erro);
-
+    console.error("Falha geral:", erro);
     alert("Falha ao conectar com o banco.");
-
   }
-
-}
+};
 
   const processo = {
     empresa: empresa,
