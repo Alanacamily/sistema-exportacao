@@ -1,17 +1,6 @@
 console.log("APP.JS CARREGOU");
 
 const SUPABASE_URL = "https://ayekrvnqjtmpvjtrwqnd.supabase.co";
-
-const SUPABASE_KEY = "sb_publishable_e9EC0WSIoq3ISWipVj1TTA_a_ZG1Bz0";
-
-const banco = supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
-
-console.log("APP.JS CARREGOU");
-
-const SUPABASE_URL = "https://ayekrvnqjtmpvjtrwqnd.supabase.co";
 const SUPABASE_KEY = "sb_publishable_e9EC0WSIoq3ISWipVj1TTA_a_ZG1Bz0";
 
 const banco = supabase.createClient(
