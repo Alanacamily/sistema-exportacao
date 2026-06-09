@@ -198,15 +198,17 @@ function renderizarTabela() {
 
   processos.forEach(function(p, index) {
     const textoBusca = `
-      ${p.empresa}
-      ${p.fatura}
-      ${p.numeroDue}
-      ${p.crt}
-      ${p.numeroVeiculo}
-      ${p.mercadoria}
+      ${p.empresa || ""}
+      ${p.cnpj || ""}
+      ${p.fatura || ""}
+      ${p.numeroDue || ""}
+      ${p.crt || ""}
+      ${p.numeroVeiculo || ""}
+      ${p.mercadoria || ""}
     `.toLowerCase();
 
     const passaBusca = textoBusca.includes(busca);
+
     const passaData =
       !filtroData ||
       p.dataAverbacao === filtroData ||
@@ -215,161 +217,78 @@ function renderizarTabela() {
     if (!passaBusca || !passaData) {
       return;
     }
-     if (p.fracionado) {
-     renderizarFracionado(tbody, p, index);
-      return;
-     }
 
-     if (p.aduanaIntegrada) {
-     renderizarAduanaIntegrada(tbody, p, index);
-     return;
-     }
     const tr = document.createElement("tr");
 
     if (p.financeiroCobrou) {
       tr.classList.add("cobrado");
     }
-function renderizarFracionado(tbody, p, index) {
-  const linhaTitulo = document.createElement("tr");
 
-  linhaTitulo.innerHTML = `
-    <td colspan="19" class="linha-fracionado">
-      FRACIONADO
-    </td>
-  `;
+    if (p.aduanaIntegrada) {
+      tr.innerHTML = `
+        <td>${p.empresa || ""}</td>
+        <td>${p.cnpj || ""}</td>
+        <td colspan="8" class="linha-aduana">🛃 ADUANA INTEGRADA</td>
+        <td>${p.pesoLiquido || ""}</td>
+        <td colspan="6"></td>
+        <td>
+          <button 
+            class="${p.financeiroCobrou ? "btn-financeiro-ok" : "btn-financeiro"}"
+            onclick="alternarFinanceiro(${index})">
+            ${p.financeiroCobrou ? "🟢 Cobrado" : "⚪ Cobrar"}
+          </button>
+        </td>
+        <td>${p.dataLancamento || ""}</td>
+        <td>
+          <button class="btn-edit" onclick="editarProcesso(${index})">Editar</button>
+          <button class="btn-delete" onclick="excluirProcesso(${index})">Excluir</button>
+        </td>
+      `;
+    } else {
+      tr.innerHTML = `
+        <td>${p.empresa || ""}</td>
+        <td>${p.cnpj || ""}</td>
+        <td>${p.quantidade || ""}</td>
+        <td>${formatarData(p.dataAverbacao)}</td>
+        <td>${p.crt || ""}</td>
+        <td>${p.mercadoria || ""}</td>
+        <td>${p.fatura || ""}</td>
+        <td>${p.observacao || ""}</td>
+        <td>${p.numeroVeiculo || ""}</td>
+        <td>${p.transporte || ""}</td>
+        <td>${p.pesoLiquido || ""}</td>
+        <td>${p.numeroDue || ""}</td>
+        <td>${p.responsavelDue === "Exacta" ? "Exacta" : "-"}</td>
+        <td>${p.responsavelDue === "Parceiro" ? "Parceiro" : "-"}</td>
+        <td>${p.responsavelCo === "Exacta" ? "Exacta" : "-"}</td>
+        <td>${p.responsavelCo === "Parceiro" ? "Parceiro" : "-"}</td>
+        <td>${p.lpco || "-"}</td>
+        <td>
+          <button 
+            class="${p.financeiroCobrou ? "btn-financeiro-ok" : "btn-financeiro"}"
+            onclick="alternarFinanceiro(${index})">
+            ${p.financeiroCobrou ? "🟢 Cobrado" : "⚪ Cobrar"}
+          </button>
+        </td>
+        <td>${p.dataLancamento || ""}</td>
+        <td>
+          <button class="btn-edit" onclick="editarProcesso(${index})">Editar</button>
+          <button class="btn-delete" onclick="excluirProcesso(${index})">Excluir</button>
+        </td>
+      `;
+    }
 
-  tbody.appendChild(linhaTitulo);
+    if (p.fracionado && !p.aduanaIntegrada) {
+      const linhaFracionado = document.createElement("tr");
 
-  const tr = document.createElement("tr");
+      linhaFracionado.innerHTML = `
+        <td colspan="20" class="linha-fracionado">
+          FRACIONADO
+        </td>
+      `;
 
-  if (p.financeiroCobrou) {
-    tr.classList.add("cobrado");
-  }
-
-  tr.innerHTML = `
-    <td>${p.empresa || ""}</td>
-    <td>${p.cnpj || ""}</td>
-    <td>${p.quantidade || ""}</td>
-    <td>${formatarData(p.dataAverbacao)}</td>
-    <td>${p.crt || ""}</td>
-    <td>${p.mercadoria || ""}</td>
-    <td>${p.fatura || ""}</td>
-    <td>${p.observacao || ""}</td>
-    <td>${p.numeroVeiculo || ""}</td>
-    <td>${p.transporte || ""}</td>
-    <td>${p.pesoLiquido || ""}</td>
-    <td>${p.numeroDue || ""}</td>
-    <td>${p.numeroDue || ""}</td>
-
-   <td>
-   ${p.responsavelDue === "Parceiro" ? "Parceiro" : "-"}
-   </td>
-
-   <td>
-    ${p.responsavelCo === "Parceiro" ? "Parceiro" : "-"}
-   </td>
-
-   <td>${p.lpco || "-"}</td>
-
-   <td>
-   ${p.fracionado ? "📦 Fracionado" : ""}
-   ${p.aduanaIntegrada ? "🛃 Aduana Integrada" : ""}
-  </td>
-
-      <button 
-        class="${p.financeiroCobrou ? "btn-financeiro-ok" : "btn-financeiro"}"
-        onclick="alternarFinanceiro(${index})">
-        ${p.financeiroCobrou ? "🟢 Cobrado" : "⚪ Cobrar"}
-      </button>
-    </td>
-    <td>${p.dataLancamento}</td>
-    <td>
-      <button class="btn-edit" onclick="editarProcesso(${index})">Editar</button>
-      <button class="btn-delete" onclick="excluirProcesso(${index})">Excluir</button>
-    </td>
-  `;
-
-  tbody.appendChild(tr);
-}
-
-function renderizarAduanaIntegrada(tbody, p, index) {
-  const tr = document.createElement("tr");
-
-  if (p.financeiroCobrou) {
-    tr.classList.add("cobrado");
-  }
-
-  tr.innerHTML = `
-    <td>${p.empresa || ""}</td>
-    <td>${p.cnpj || ""}</td>
-    <td colspan="8" class="linha-aduana">
-      🛃 ADUANA INTEGRADA
-    </td>
-    <td>${p.pesoLiquido || ""}</td>
-    <td colspan="5"></td>
-    <td>
-      <button 
-        class="${p.financeiroCobrou ? "btn-financeiro-ok" : "btn-financeiro"}"
-        onclick="alternarFinanceiro(${index})">
-        ${p.financeiroCobrou ? "🟢 Cobrado" : "⚪ Cobrar"}
-      </button>
-    </td>
-    <td>${p.dataLancamento}</td>
-    <td>
-      <button class="btn-edit" onclick="editarProcesso(${index})">Editar</button>
-      <button class="btn-delete" onclick="excluirProcesso(${index})">Excluir</button>
-    </td>
-  `;
-
-  tbody.appendChild(tr);
-}
-    tr.innerHTML = `
-      <td>${p.empresa}</td>
-      <td>${p.quantidade || ""}</td>
-      <td>${formatarData(p.dataAverbacao)}</td>
-      <td>${p.crt || ""}</td>
-      <td>${p.mercadoria || ""}</td>
-      <td>${p.fatura}</td>
-      <td>${p.observacao || ""}</td>
-      <td>${p.numeroVeiculo || ""}</td>
-      <td>${p.transporte || ""}</td>
-      <td>${p.pesoLiquido || ""}</td>
-      <td>${p.numeroDue || ""}</td>
-      <td>${p.numeroDue || ""}</td>
-      <td>
-     ${p.responsavelDue === "Exacta" ? "Exacta" : "-"}
-      </td>
-
-      <td>
-     ${p.responsavelDue === "Parceiro" ? "Parceiro" : "-"}
-     </td>
-
-      <td>
-     ${p.responsavelCo === "Exacta" ? "Exacta" : "-"}
-     </td>
-
-      <td>
-     ${p.responsavelCo === "Parceiro" ? "Parceiro" : "-"}
-     </td>
-
-      <td>${p.lpco || "-"}</td>
-      <td>
-       ${p.fracionado ? "📦 Fracionado" : ""}
-       ${p.aduanaIntegrada ? "🛃 Aduana Integrada" : ""}
-       </td>
-
-        <button 
-          class="${p.financeiroCobrou ? "btn-financeiro-ok" : "btn-financeiro"}"
-          onclick="alternarFinanceiro(${index})">
-          ${p.financeiroCobrou ? "🟢 Cobrado" : "⚪ Cobrar"}
-        </button>
-      </td>
-      <td>${p.dataLancamento}</td>
-      <td>
-        <button class="btn-edit" onclick="editarProcesso(${index})">Editar</button>
-        <button class="btn-delete" onclick="excluirProcesso(${index})">Excluir</button>
-      </td>
-    `;
+      tbody.appendChild(linhaFracionado);
+    }
 
     tbody.appendChild(tr);
   });
