@@ -111,45 +111,6 @@ window.salvarProcesso = async function () {
   }
 };
 
-  const processo = {
-    empresa: empresa,
-    fatura: fatura,
-    cnpj: cnpj,
-
-    quantidade: aduanaIntegrada ? "" : valor("quantidade"),
-    dataAverbacao: aduanaIntegrada ? "" : valor("dataAverbacao"),
-    crt: aduanaIntegrada ? "" : valor("crt"),
-    mercadoria: aduanaIntegrada ? "" : valor("mercadoria"),
-    observacao: aduanaIntegrada ? "" : valor("observacao"),
-    numeroVeiculo: aduanaIntegrada ? "" : valor("numeroVeiculo"),
-    transporte: aduanaIntegrada ? "" : valor("transporte"),
-    pesoLiquido: pesoLiquido,
-    numeroDue: aduanaIntegrada ? "" : valor("numeroDue"),
-    lpco: aduanaIntegrada ? "" : valor("lpco"),
-
-    responsavelDue: aduanaIntegrada
-      ? ""
-      : document.querySelector('input[name="due"]:checked').value,
-
-    responsavelCo: aduanaIntegrada
-      ? ""
-      : document.querySelector('input[name="co"]:checked').value,
-
-    fracionado: aduanaIntegrada
-      ? false
-      : document.getElementById("fracionado").checked,
-
-    aduanaIntegrada: aduanaIntegrada,
-
-    financeiroCobrou: editandoIndex === null
-      ? false
-      : processos[editandoIndex].financeiroCobrou,
-
-    dataLancamento: editandoIndex === null
-      ? new Date().toLocaleString("pt-BR")
-      : processos[editandoIndex].dataLancamento
-  };
-
 function limparFormulario() {
    const campos = [
    "empresa",
