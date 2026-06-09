@@ -395,28 +395,66 @@ function editarProcesso(index) {
   });
 }
 
-function excluirProcesso(index) {
+window.excluirProcesso = async function(index) {
   if (!confirm("Deseja mover este processo para a lixeira?")) {
     return;
   }
 
-  const removido = processos.splice(index, 1)[0];
-  removido.dataExclusao = new Date().toLocaleString("pt-BR");
+  const id = processos[index].id;
 
-  lixeira.push(removido);
+  const { error } = await banco
+    .from("processos")
+    .update({
+      excluido: true
+    })
+    .eq("id", id);
 
-  salvarLocal();
-  carregarProcessos();
-  renderizarLixeira();
-}
+  if (error) {
+    console.error("Erro ao excluir:", error);
+    alert("Erro ao mover para a lixeira.");
+    return;
+  }
 
-function abrirLixeira() {
+  alert("Processo movido para a lixeira!");
+
+  await carregarProcessos();
+  await carregarLixeira();
+};
+
+window.abrirLixeira = async function() {
   document.getElementById("modalLixeira").style.display = "flex";
-  renderizarLixeira();
-}
+  await carregarLixeira();
+};
 
-function fecharLixeira() {
+window.fecharLixeira = function() {
   document.getElementById("modalLixeira").style.display = "none";
+};
+
+async function carregarLixeira() {
+  const { data, error } = await banco
+    .from("processos")
+    .select("*")
+    .eq("excluido", true);
+
+  if (error) {
+    console.error("Erro ao carregar lixeira:", error);
+    alert("Erro ao carregar lixeira.");
+    return;
+  }
+
+  lixeira = data.map(function(p) {
+    return {
+      id: p.id,
+      empresa: p.empresa || "",
+      cnpj: p.cnpj || "",
+      fatura: p.fatura || "",
+      numeroDue: p.numero_due || "",
+      aduanaIntegrada: p.aduana_integrada || false,
+      dataExclusao: p.data_lancamento || ""
+    };
+  });
+
+  renderizarLixeira();
 }
 
 function renderizarLixeira() {
@@ -437,10 +475,10 @@ function renderizarLixeira() {
 
     div.innerHTML = `
       <p><strong>Empresa:</strong> ${p.empresa}</p>
+      <p><strong>CNPJ:</strong> ${p.cnpj}</p>
       <p><strong>Fatura:</strong> ${p.fatura}</p>
       <p><strong>DUE:</strong> ${p.numeroDue || ""}</p>
       <p><strong>Aduana Integrada:</strong> ${p.aduanaIntegrada ? "Sim" : "Não"}</p>
-      <p><strong>Excluído em:</strong> ${p.dataExclusao}</p>
 
       <br>
 
@@ -457,28 +495,51 @@ function renderizarLixeira() {
   });
 }
 
-function restaurarProcesso(index) {
-  const restaurado = lixeira.splice(index, 1)[0];
+window.restaurarProcesso = async function(index) {
+  const id = lixeira[index].id;
 
-  delete restaurado.dataExclusao;
+  const { error } = await banco
+    .from("processos")
+    .update({
+      excluido: false
+    })
+    .eq("id", id);
 
-  processos.push(restaurado);
+  if (error) {
+    console.error("Erro ao restaurar:", error);
+    alert("Erro ao restaurar processo.");
+    return;
+  }
 
-  salvarLocal();
-  renderizarTabela();
-  renderizarLixeira();
-}
+  alert("Processo restaurado!");
 
-function excluirDefinitivo(index) {
+  await carregarProcessos();
+  await carregarLixeira();
+};
+
+window.excluirDefinitivo = async function(index) {
   if (!confirm("Excluir definitivamente? Essa ação não poderá ser desfeita.")) {
     return;
   }
 
-  lixeira.splice(index, 1);
+  const id = lixeira[index].id;
 
-  salvarLocal();
-  renderizarLixeira();
-}
+  const { error } = await banco
+    .from("processos")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("Erro ao excluir definitivamente:", error);
+    alert("Erro ao excluir definitivamente.");
+    return;
+  }
+
+  alert("Processo excluído definitivamente!");
+
+  await carregarLixeira();
+};
+
 
 function alternarFinanceiro(index) {
   processos[index].financeiroCobrou = !processos[index].financeiroCobrou;
