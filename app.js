@@ -397,6 +397,10 @@ function editarProcesso(index) {
 }
 
 window.excluirProcesso = async function(index) {
+  if (!confirm("Deseja mover este processo para a lixeira?")) {
+    return;
+  }
+
   const id = processos[index].id;
 
   const { data, error } = await banco
@@ -416,8 +420,8 @@ window.excluirProcesso = async function(index) {
     return;
   }
 
-    alert("Processo movido para a lixeira!");
-  
+  alert("Processo movido para a lixeira!");
+
   await carregarProcessos();
   await carregarLixeira();
 };
