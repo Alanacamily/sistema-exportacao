@@ -116,31 +116,49 @@ window.salvarProcesso = async function () {
       : document.getElementById("fracionado").checked,
 
     aduana_integrada: aduanaIntegrada,
-    financeiro_cobrou: false,
+
+    financeiro_cobrou: editandoIndex === null
+      ? false
+      : processos[editandoIndex].financeiroCobrou,
+
     usuario_lancamento: "Alana"
   };
 
-  try {
+  if (editandoIndex === null) {
     const { error } = await banco
       .from("processos")
       .insert([processo]);
 
     if (error) {
-      console.error("Erro Supabase:", error);
-      alert("Erro ao salvar no Supabase.");
+      console.error("Erro ao salvar:", error);
+      alert("Erro ao salvar processo.");
       return;
     }
 
     alert("Processo salvo com sucesso!");
+  } else {
+    const id = processos[editandoIndex].id;
 
-    limparFormulario();
+    const { error } = await banco
+      .from("processos")
+      .update(processo)
+      .eq("id", id);
 
-   await carregarProcessos();
+    if (error) {
+      console.error("Erro ao atualizar:", error);
+      alert("Erro ao atualizar processo.");
+      return;
+    }
 
-  } catch (erro) {
-    console.error("Falha geral:", erro);
-    alert("Falha ao conectar com o banco.");
+    alert("Processo atualizado com sucesso!");
+
+    editandoIndex = null;
+    document.getElementById("btnSalvar").innerText = "Salvar Processo";
   }
+
+  limparFormulario();
+
+  await carregarProcessos();
 };
 
 function limparFormulario() {
@@ -359,12 +377,11 @@ function renderizarAduanaIntegrada(tbody, p, index) {
   atualizarDashboard();
 }
 
-function editarProcesso(index) {
+window.editarProcesso = function(index) {
   const p = processos[index];
 
-  if (document.getElementById("cnpj")) {
+  document.getElementById("empresa").value = p.empresa || "";
   document.getElementById("cnpj").value = p.cnpj || "";
-}
   document.getElementById("quantidade").value = p.quantidade || "";
   document.getElementById("dataAverbacao").value = p.dataAverbacao || "";
   document.getElementById("crt").value = p.crt || "";
@@ -380,22 +397,31 @@ function editarProcesso(index) {
   document.getElementById("fracionado").checked = !!p.fracionado;
   document.getElementById("aduanaIntegrada").checked = !!p.aduanaIntegrada;
 
-  document.querySelector(
+  const dueRadio = document.querySelector(
     `input[name="due"][value="${p.responsavelDue || "Exacta"}"]`
-  ).checked = true;
+  );
 
-  document.querySelector(
+  const coRadio = document.querySelector(
     `input[name="co"][value="${p.responsavelCo || "Exacta"}"]`
-  ).checked = true;
+  );
+
+  if (dueRadio) {
+    dueRadio.checked = true;
+  }
+
+  if (coRadio) {
+    coRadio.checked = true;
+  }
 
   editandoIndex = index;
+
   document.getElementById("btnSalvar").innerText = "Atualizar Processo";
 
   window.scrollTo({
     top: 0,
     behavior: "smooth"
   });
-}
+};
 
 window.excluirProcesso = async function(index) {
   if (!confirm("Deseja mover este processo para a lixeira?")) {
