@@ -13,6 +13,7 @@ console.log("Supabase conectado:", banco);
 let processos = JSON.parse(localStorage.getItem("processos")) || [];
 let lixeira = JSON.parse(localStorage.getItem("lixeira")) || [];
 let editandoIndex = null;
+let usuarioAtual = null;
 
 function salvarLocal() {
   localStorage.setItem("processos", JSON.stringify(processos));
@@ -121,7 +122,7 @@ window.salvarProcesso = async function () {
       ? false
       : processos[editandoIndex].financeiroCobrou,
 
-    usuario_lancamento: "Alana"
+    usuario_lancamento: usuarioAtual || "Usuário não identificado"
   };
 
   if (editandoIndex === null) {
@@ -686,3 +687,55 @@ window.abrirLixeira = abrirLixeira;
 window.fecharLixeira = fecharLixeira;
 window.exportarExcel = exportarExcel;
 window.exportarPDF = exportarPDF;
+
+window.fazerLogin = async function() {
+  const email = document.getElementById("loginEmail").value.trim();
+  const senha = document.getElementById("loginSenha").value.trim();
+
+  if (!email || !senha) {
+    alert("Preencha e-mail e senha.");
+    return;
+  }
+
+  const { data, error } = await banco.auth.signInWithPassword({
+    email: email,
+    password: senha
+  });
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  usuarioAtual = data.user.email;
+
+  document.getElementById("telaLogin").style.display = "none";
+  document.getElementById("usuarioLogado").innerText = data.user.email;
+};
+
+window.sair = async function() {
+  await banco.auth.signOut();
+
+  usuarioAtual = null;
+
+  document.getElementById("telaLogin").style.display = "flex";
+  document.getElementById("usuarioLogado").innerText = "";
+};
+
+async function verificarLogin() {
+  const { data } = await banco.auth.getSession();
+
+  if (data.session) {
+    usuarioAtual = data.session.user.email;
+
+    document.getElementById("telaLogin").style.display = "none";
+    document.getElementById("usuarioLogado").innerText = data.session.user.email;
+  } else {
+    usuarioAtual = null;
+
+    document.getElementById("telaLogin").style.display = "flex";
+    document.getElementById("usuarioLogado").innerText = "";
+  }
+}
+
+verificarLogin();
