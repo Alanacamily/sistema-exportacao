@@ -14,6 +14,7 @@ let processos = JSON.parse(localStorage.getItem("processos")) || [];
 let lixeira = JSON.parse(localStorage.getItem("lixeira")) || [];
 let editandoIndex = null;
 let usuarioAtual = null;
+let nivelUsuario = null;
 
 function salvarLocal() {
   localStorage.setItem("processos", JSON.stringify(processos));
@@ -53,10 +54,11 @@ async function carregarProcessos() {
       lpco: p.lpco || "",
       responsavelDue: p.responsavel_due || "",
       responsavelCo: p.responsavel_co || "",
-      fracionado: p.fracionado || false,
-      aduanaIntegrada: p.aduana_integrada || false,
+      aduanaIntegrada: !!p.aduana_integrada,
+      fracionado: p.aduana_integrada ? false : !!p.fracionado,
       financeiroCobrou: p.financeiro_cobrou || false,
-      dataLancamento: p.data_lancamento || ""
+      dataLancamento: p.data_lancamento || "",
+      diaFinalizado: p.dia_finalizado || false
     };
   });
 
@@ -190,12 +192,62 @@ function limparFormulario() {
   document.querySelector('input[name="co"][value="Exacta"]').checked = true;
 }
 
+function podeFinanceiro() {
+  return nivelUsuario === "admin" || nivelUsuario === "financeiro";
+}
+
+function podeEditar() {
+  return nivelUsuario === "admin" || nivelUsuario === "operador";
+}
+
+function podeExcluir() {
+  return nivelUsuario === "admin" || nivelUsuario === "operador";
+}
+
+function renderizarBotaoFinanceiro(p, index) {
+  if (!podeFinanceiro()) {
+    return "";
+  }
+
+  return `
+    <button 
+      class="${p.financeiroCobrou ? "btn-financeiro-ok" : "btn-financeiro"}"
+      onclick="alternarFinanceiro(${index})">
+      ${p.financeiroCobrou ? "🟢 Cobrado" : "⚪ Cobrar"}
+    </button>
+  `;
+}
+
+function renderizarBotoesAcao(index) {
+  let botoes = "";
+
+  if (podeEditar()) {
+    botoes += `
+      <button class="btn-edit" onclick="editarProcesso(${index})">
+        Editar
+      </button>
+    `;
+  }
+
+  if (podeExcluir()) {
+    botoes += `
+      <button class="btn-delete" onclick="excluirProcesso(${index})">
+        Excluir
+      </button>
+    `;
+  }
+
+  return botoes;
+}
+
 function renderizarTabela() {
   const tbody = document.getElementById("tabelaProcessos");
   const busca = document.getElementById("busca").value.toLowerCase();
   const filtroData = document.getElementById("filtroData").value;
 
   tbody.innerHTML = "";
+
+  let ultimoDiaRenderizado = "";
 
   processos.forEach(function(p, index) {
     const textoBusca = `
@@ -219,85 +271,101 @@ function renderizarTabela() {
       return;
     }
 
-    const tr = document.createElement("tr");
+    const diaProcesso = formatarDataLancamentoParaDia(p.dataLancamento);
 
-    if (p.financeiroCobrou) {
-      tr.classList.add("cobrado");
-    }
+   if (diaProcesso !== ultimoDiaRenderizado) {
+   ultimoDiaRenderizado = diaProcesso;
 
-    if (p.aduanaIntegrada) {
-      tr.innerHTML = `
-        <td>${p.empresa || ""}</td>
-        <td>${p.cnpj || ""}</td>
-        <td colspan="8" class="linha-aduana">🛃 ADUANA INTEGRADA</td>
-        <td>${p.pesoLiquido || ""}</td>
-        <td colspan="6"></td>
-        <td>
-          <button 
-            class="${p.financeiroCobrou ? "btn-financeiro-ok" : "btn-financeiro"}"
-            onclick="alternarFinanceiro(${index})">
-            ${p.financeiroCobrou ? "🟢 Cobrado" : "⚪ Cobrar"}
-          </button>
-        </td>
-        <td>${p.dataLancamento || ""}</td>
-        <td>
-          <button class="btn-edit" onclick="editarProcesso(${index})">Editar</button>
-          <button class="btn-delete" onclick="excluirProcesso(${index})">Excluir</button>
-        </td>
-      `;
-    } else {
-      tr.innerHTML = `
-        <td>${p.empresa || ""}</td>
-        <td>${p.cnpj || ""}</td>
-        <td>${p.quantidade || ""}</td>
-        <td>${formatarData(p.dataAverbacao)}</td>
-        <td>${p.crt || ""}</td>
-        <td>${p.mercadoria || ""}</td>
-        <td>${p.fatura || ""}</td>
-        <td>${p.observacao || ""}</td>
-        <td>${p.numeroVeiculo || ""}</td>
-        <td>${p.transporte || ""}</td>
-        <td>${p.pesoLiquido || ""}</td>
-        <td>${p.numeroDue || ""}</td>
-        <td>${p.responsavelDue === "Exacta" ? "Exacta" : "-"}</td>
-        <td>${p.responsavelDue === "Parceiro" ? "Parceiro" : "-"}</td>
-        <td>${p.responsavelCo === "Exacta" ? "Exacta" : "-"}</td>
-        <td>${p.responsavelCo === "Parceiro" ? "Parceiro" : "-"}</td>
-        <td>${p.lpco || "-"}</td>
-        <td>
-          <button 
-            class="${p.financeiroCobrou ? "btn-financeiro-ok" : "btn-financeiro"}"
-            onclick="alternarFinanceiro(${index})">
-            ${p.financeiroCobrou ? "🟢 Cobrado" : "⚪ Cobrar"}
-          </button>
-        </td>
-        <td>${p.dataLancamento || ""}</td>
-        <td>
-          <button class="btn-edit" onclick="editarProcesso(${index})">Editar</button>
-          <button class="btn-delete" onclick="excluirProcesso(${index})">Excluir</button>
-        </td>
-      `;
-    }
+   const linhaDia = document.createElement("tr");
 
-    if (p.fracionado && !p.aduanaIntegrada) {
-      const linhaFracionado = document.createElement("tr");
+   linhaDia.innerHTML = `
+     <td colspan="20" class="linha-dia">
+      📅 ${diaProcesso}
+      <button class="btn-finalizar-dia" onclick="finalizarDia('${diaProcesso}')">
+        Finalizar dia
+      </button>
+     </td>
+   `;
 
-      linhaFracionado.innerHTML = `
-        <td colspan="20" class="linha-fracionado">
-          FRACIONADO
-        </td>
-      `;
+  tbody.appendChild(linhaDia);
+ }
 
-      tbody.appendChild(linhaFracionado);
-    }
+     const tr = document.createElement("tr");
 
-    tbody.appendChild(tr);
+if (p.financeiroCobrou) {
+  tr.classList.add("cobrado");
+}
+
+if (p.aduanaIntegrada) {
+  tr.innerHTML = `
+    <td>${p.empresa || ""}</td>
+    <td>${p.cnpj || ""}</td>
+
+    <td colspan="4" class="linha-aduana">
+      LIBERAÇÃO VIA ADUANA INTEGRADA
+    </td>
+
+    <td colspan="3">
+      FATURA: ${p.fatura || "-"}
+    </td>
+
+    <td></td>
+    <td>${p.pesoLiquido || ""}</td>
+    <td>${p.numeroDue || "-"}</td>
+    <td>${p.responsavelDue === "Exacta" ? "X" : "-"}</td>
+    <td>${p.responsavelDue === "Parceiro" ? "X" : "-"}</td>
+    <td>${p.responsavelCo === "Exacta" ? "X" : "-"}</td>
+    <td>${p.responsavelCo === "Parceiro" ? "X" : "-"}</td>
+    <td>${p.responsavelCo === "Sem C.O" ? "SEM C.O" : (p.lpco || "-")}</td>
+    <td>${renderizarBotaoFinanceiro(p, index)}</td>
+    <td>${p.dataLancamento || ""}</td>
+    <td>${renderizarBotoesAcao(index)}</td>
+  `;
+} else {
+  tr.innerHTML = `
+    <td>${p.empresa || ""}</td>
+    <td>${p.cnpj || ""}</td>
+    <td>${p.quantidade || ""}</td>
+    <td>${formatarData(p.dataAverbacao)}</td>
+    <td>${p.crt || ""}</td>
+    <td>${p.mercadoria || ""}</td>
+    <td>${p.fatura || ""}</td>
+    <td>${p.observacao || ""}</td>
+    <td>${p.numeroVeiculo || ""}</td>
+    <td>${p.transporte || ""}</td>
+    <td>${p.pesoLiquido || ""}</td>
+    <td>${p.numeroDue || ""}</td>
+    <td>${p.responsavelDue === "Exacta" ? "Exacta" : "-"}</td>
+    <td>${p.responsavelDue === "Parceiro" ? "Parceiro" : "-"}</td>
+    <td>${p.responsavelCo === "Exacta" ? "Exacta" : "-"}</td>
+    <td>${p.responsavelCo === "Parceiro" ? "Parceiro" : "-"}</td>
+    <td>${p.lpco || "-"}</td>
+    <td>${renderizarBotaoFinanceiro(p, index)}</td>
+    <td>${p.dataLancamento || ""}</td>
+    <td>${renderizarBotoesAcao(index)}</td>
+  `;
+}
+
+if (p.fracionado === true && p.aduanaIntegrada !== true) {
+  const linhaFracionado = document.createElement("tr");
+
+  linhaFracionado.innerHTML = `
+    <td colspan="20" class="linha-fracionado">
+      FRACIONADO
+    </td>
+  `;
+
+  tbody.appendChild(linhaFracionado);
+}
+
+tbody.appendChild(tr);
+
   });
 
   atualizarDashboard();
 }
 
-window.editarProcesso = function(index) {
+  window.editarProcesso = function(index) {
   const p = processos[index];
 
   document.getElementById("empresa").value = p.empresa || "";
@@ -709,6 +777,7 @@ window.fazerLogin = async function() {
 
   usuarioAtual = data.user.email;
 
+  await carregarNivelUsuario(usuarioAtual);
   document.getElementById("telaLogin").style.display = "none";
   document.getElementById("usuarioLogado").innerText = data.user.email;
 };
@@ -726,16 +795,121 @@ async function verificarLogin() {
   const { data } = await banco.auth.getSession();
 
   if (data.session) {
+
     usuarioAtual = data.session.user.email;
 
+    await carregarNivelUsuario(usuarioAtual);
+
     document.getElementById("telaLogin").style.display = "none";
-    document.getElementById("usuarioLogado").innerText = data.session.user.email;
+
+    document.getElementById("usuarioLogado").innerText =
+      data.session.user.email;
+
   } else {
+
     usuarioAtual = null;
+    nivelUsuario = null;
 
     document.getElementById("telaLogin").style.display = "flex";
+
     document.getElementById("usuarioLogado").innerText = "";
   }
 }
 
+async function carregarNivelUsuario(email) {
+  const emailLimpo = email.trim().toLowerCase();
+
+  const { data, error } = await banco
+    .from("usuarios")
+    .select("nivel")
+    .ilike("email", emailLimpo)
+    .limit(1);
+
+  if (error) {
+    console.error("Erro ao carregar nível do usuário:", error);
+    nivelUsuario = null;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    console.warn("Usuário não encontrado na tabela usuarios:", emailLimpo);
+    nivelUsuario = null;
+    return;
+  }
+
+  nivelUsuario = data[0].nivel;
+
+  console.log("Nível do usuário:", nivelUsuario);
+
+  aplicarPermissoes();
+
+  renderizarTabela();
+}
+
+function aplicarPermissoes() {
+  console.log("Aplicando permissões para:", nivelUsuario);
+
+  const btnSalvar = document.getElementById("btnSalvar");
+
+  if (!btnSalvar) {
+    return;
+  }
+
+  if (nivelUsuario === "admin" || nivelUsuario === "operador") {
+    btnSalvar.style.display = "inline-block";
+  } else {
+    btnSalvar.style.display = "none";
+  }
+}
+
 verificarLogin();
+
+function formatarDataLancamentoParaDia(dataLancamento) {
+  if (!dataLancamento) {
+    return "Sem data";
+  }
+
+  if (dataLancamento.includes("T")) {
+    const data = new Date(dataLancamento);
+
+    return data.toLocaleDateString("pt-BR");
+  }
+
+  return dataLancamento.split(",")[0];
+}
+
+window.finalizarDia = async function(dia) {
+  if (!confirm(`Finalizar o dia ${dia}?`)) {
+    return;
+  }
+
+  const processosDoDia = processos.filter(function(p) {
+    return formatarDataLancamentoParaDia(p.dataLancamento) === dia;
+  });
+
+  const ids = processosDoDia.map(function(p) {
+    return p.id;
+  });
+
+  if (ids.length === 0) {
+    alert("Nenhum processo encontrado para esse dia.");
+    return;
+  }
+
+  const { error } = await banco
+    .from("processos")
+    .update({
+      dia_finalizado: true
+    })
+    .in("id", ids);
+
+  if (error) {
+    console.error("Erro ao finalizar dia:", error);
+    alert("Erro ao finalizar dia.");
+    return;
+  }
+
+  alert(`Dia ${dia} finalizado!`);
+
+  await carregarProcessos();
+};
