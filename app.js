@@ -13,6 +13,7 @@ console.log("Supabase conectado:", banco);
 let processos = JSON.parse(localStorage.getItem("processos")) || [];
 let lixeira = JSON.parse(localStorage.getItem("lixeira")) || [];
 let editandoIndex = null;
+let diasAbertos = {};
 let usuarioAtual = null;
 let nivelUsuario = null;
 
@@ -64,8 +65,6 @@ async function carregarProcessos() {
 
   renderizarTabela();
 }
-
-  carregarProcessos();
 
 window.salvarProcesso = async function () {
   const empresa = valor("empresa").trim();
@@ -273,22 +272,44 @@ function renderizarTabela() {
 
     const diaProcesso = formatarDataLancamentoParaDia(p.dataLancamento);
 
-   if (diaProcesso !== ultimoDiaRenderizado) {
-   ultimoDiaRenderizado = diaProcesso;
+const processosDoDia = processos.filter(function(item) {
+  return formatarDataLancamentoParaDia(item.dataLancamento) === diaProcesso;
+});
 
-   const linhaDia = document.createElement("tr");
+const diaFinalizado = processosDoDia.every(function(item) {
+  return item.diaFinalizado === true;
+});
 
-   linhaDia.innerHTML = `
-     <td colspan="20" class="linha-dia">
+const diaAberto = diasAbertos[diaProcesso] === true;
+
+if (diaProcesso !== ultimoDiaRenderizado) {
+  ultimoDiaRenderizado = diaProcesso;
+
+  const linhaDia = document.createElement("tr");
+
+  linhaDia.innerHTML = `
+    <td colspan="20" class="linha-dia">
       📅 ${diaProcesso}
-      <button class="btn-finalizar-dia" onclick="finalizarDia('${diaProcesso}')">
-        Finalizar dia
-      </button>
-     </td>
-   `;
+      ${diaFinalizado ? " — FINALIZADO" : ""}
+
+      ${
+        diaFinalizado
+          ? `<button class="btn-finalizar-dia" onclick="alternarDia('${diaProcesso}')">
+              ${diaAberto ? "Ocultar" : "Mostrar"}
+            </button>`
+          : `<button class="btn-finalizar-dia" onclick="finalizarDia('${diaProcesso}')">
+              Finalizar dia
+            </button>`
+      }
+    </td>
+  `;
 
   tbody.appendChild(linhaDia);
- }
+}
+
+if (diaFinalizado && !diaAberto) {
+  return;
+}
 
      const tr = document.createElement("tr");
 
@@ -777,11 +798,6 @@ window.fazerLogin = async function() {
 
   usuarioAtual = data.user.email;
 
-  await carregarNivelUsuario(usuarioAtual);
-  document.getElementById("telaLogin").style.display = "none";
-  document.getElementById("usuarioLogado").innerText = data.user.email;
-};
-
 window.sair = async function() {
   await banco.auth.signOut();
 
@@ -795,23 +811,19 @@ async function verificarLogin() {
   const { data } = await banco.auth.getSession();
 
   if (data.session) {
-
     usuarioAtual = data.session.user.email;
 
     await carregarNivelUsuario(usuarioAtual);
+    await carregarProcessos();
 
     document.getElementById("telaLogin").style.display = "none";
-
     document.getElementById("usuarioLogado").innerText =
       data.session.user.email;
-
   } else {
-
     usuarioAtual = null;
     nivelUsuario = null;
 
     document.getElementById("telaLogin").style.display = "flex";
-
     document.getElementById("usuarioLogado").innerText = "";
   }
 }
@@ -891,16 +903,9 @@ window.finalizarDia = async function(dia) {
     return p.id;
   });
 
-  if (ids.length === 0) {
-    alert("Nenhum processo encontrado para esse dia.");
-    return;
-  }
-
   const { error } = await banco
     .from("processos")
-    .update({
-      dia_finalizado: true
-    })
+    .update({ dia_finalizado: true })
     .in("id", ids);
 
   if (error) {
@@ -913,3 +918,9 @@ window.finalizarDia = async function(dia) {
 
   await carregarProcessos();
 };
+
+window.alternarDia = function(dia) {
+  diasAbertos[dia] = !diasAbertos[dia];
+  renderizarTabela();
+};
+}
