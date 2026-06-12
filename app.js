@@ -310,7 +310,9 @@ if (diaProcesso !== ultimoDiaRenderizado) {
 
 linhaDia.innerHTML = `
   <td colspan="20" class="linha-dia">
-    📅 ${diaProcesso}
+    ${diaFinalizado ? "🔒" : "📅"} ${diaProcesso}
+    ${diaFinalizado ? "— FINALIZADO" : ""}
+    (${processosDoDia.length} processos)
 
     <button onclick="selecionarDiaExportacao('${diaProcesso}')">
       Selecionar para PDF/Excel
@@ -413,7 +415,12 @@ tbody.appendChild(tr);
 
   atualizarDashboard();
 }
-
+  window.selecionarDiaExportacao = function(dia) {
+  diaSelecionadoExportacao = dia;
+  atualizarDashboard();
+  alert("Dia selecionado para exportação: " + dia);
+};
+    
   window.editarProcesso = function(index) {
   const p = processos[index];
 
@@ -621,19 +628,56 @@ window.alternarFinanceiro = async function(index) {
   }
 
   await carregarProcessos();
-};
+}; 
 
 function atualizarDashboard() {
-  const total = processos.length;
-  const cobrados = processos.filter(function(p) {
+  const baseDashboard = diaSelecionadoExportacao
+    ? processos.filter(function(p) {
+        return formatarDataLancamentoParaDia(p.dataLancamento) === diaSelecionadoExportacao;
+      })
+    : processos;
+
+  const total = baseDashboard.length;
+
+  const cobrados = baseDashboard.filter(function(p) {
     return p.financeiroCobrou;
   }).length;
 
   const pendentes = total - cobrados;
 
+  const hoje = new Date().toLocaleDateString("pt-BR");
+
+  const totalHoje = baseDashboard.filter(function(p) {
+    return formatarDataLancamentoParaDia(p.dataLancamento) === hoje;
+  }).length;
+
+  const totalAduana = baseDashboard.filter(function(p) {
+    return p.aduanaIntegrada;
+  }).length;
+
+  const totalFracionados = baseDashboard.filter(function(p) {
+    return p.fracionado;
+  }).length;
+
+  const diasFinalizados = [
+    ...new Set(
+      processos
+        .filter(function(p) {
+          return p.diaFinalizado;
+        })
+        .map(function(p) {
+          return formatarDataLancamentoParaDia(p.dataLancamento);
+        })
+    )
+  ].length;
+
   document.getElementById("totalProcessos").innerText = total;
   document.getElementById("totalCobrados").innerText = cobrados;
   document.getElementById("totalPendentes").innerText = pendentes;
+  document.getElementById("totalHoje").innerText = totalHoje;
+  document.getElementById("totalAduana").innerText = totalAduana;
+  document.getElementById("totalFracionados").innerText = totalFracionados;
+  document.getElementById("totalDiasFinalizados").innerText = diasFinalizados;
   document.getElementById("contadorLixeira").innerText = lixeira.length;
 }
 
@@ -861,11 +905,10 @@ window.fazerLogin = async function() {
   usuarioAtual = data.user.email;
 
   await carregarNivelUsuario(usuarioAtual);
+  await carregarProcessos();
 
   document.getElementById("telaLogin").style.display = "none";
   document.getElementById("usuarioLogado").innerText = data.user.email;
-
-  await carregarProcessos();
 };
 
 async function verificarLogin() {
@@ -997,4 +1040,14 @@ window.alternarDia = function(dia) {
 window.selecionarDiaExportacao = function(dia) {
   diaSelecionadoExportacao = dia;
   alert("Dia selecionado para exportação: " + dia);
+};
+
+window.sair = async function() {
+  await banco.auth.signOut();
+
+  usuarioAtual = null;
+  nivelUsuario = null;
+
+  document.getElementById("usuarioLogado").innerText = "";
+  document.getElementById("telaLogin").style.display = "flex";
 };
