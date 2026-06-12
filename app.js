@@ -1083,36 +1083,78 @@ document.addEventListener("keydown", function(event) {
     .eq("data_backup", hojeBanco)
     .limit(1);
 
- if (erroBusca) {
-  console.log("ERRO COMPLETO:", erroBusca);
-  console.log("CODE:", erroBusca.code);
-  console.log("MESSAGE:", erroBusca.message);
-  console.log("DETAILS:", erroBusca.details);
-  console.log("HINT:", erroBusca.hint);
-  return;
-}
+  if (erroBusca) {
+    console.error("Erro ao verificar backup:", erroBusca);
+    return;
+  }
 
   if (backupExistente && backupExistente.length > 0) {
     console.log("Backup de hoje já existe.");
     return;
   }
 
-  const { error } = await banco
+  const { data: backupCriado, error: erroBackup } = await banco
     .from("backups")
     .insert([
       {
         data_backup: hojeBanco,
         total_processos: processosHoje.length,
-        dados_json: processosHoje
+        dados_json: null
       }
-    ]);
+    ])
+    .select("id")
+    .single();
 
-  console.log("Resultado insert:", error);
-
-  if (error) {
-    console.error("Erro ao criar backup automático:", JSON.stringify(error));
+  if (erroBackup) {
+    console.error("Erro ao criar registro de backup:", erroBackup);
     return;
   }
 
-  console.log("Backup criado com sucesso.");
+  const backupId = backupCriado.id;
+
+  const dadosBackupProcessos = processosHoje.map(function(p) {
+    return {
+      backup_id: backupId,
+      data_backup: hojeBanco,
+      processo_id: p.id,
+
+      empresa: p.empresa || "",
+      cnpj: p.cnpj || "",
+      quantidade: p.quantidade || null,
+      data_averbacao: p.dataAverbacao || null,
+      crt: p.crt || "",
+      mercadoria: p.mercadoria || "",
+      fatura: p.fatura || "",
+      observacao: p.observacao || "",
+      numero_veiculo: p.numeroVeiculo || "",
+      transporte: p.transporte || "",
+      peso_liquido: p.pesoLiquido || null,
+      numero_due: p.numeroDue || "",
+      lpco: p.lpco || "",
+      responsavel_due: p.responsavelDue || "",
+      responsavel_co: p.responsavelCo || "",
+      fracionado: !!p.fracionado,
+      aduana_integrada: !!p.aduanaIntegrada,
+      financeiro_cobrou: !!p.financeiroCobrou,
+      usuario_lancamento: p.usuarioLancamento || usuarioAtual || "",
+      data_lancamento: p.dataLancamento || null,
+      dia_finalizado: !!p.diaFinalizado
+    };
+  });
+
+  if (dadosBackupProcessos.length === 0) {
+    console.log("Nenhum processo de hoje para gravar no backup detalhado.");
+    return;
+  }
+
+  const { error: erroDetalhes } = await banco
+    .from("backup_processos")
+    .insert(dadosBackupProcessos);
+
+  if (erroDetalhes) {
+    console.error("Erro ao gravar backup detalhado:", erroDetalhes);
+    return;
+  }
+
+  console.log("Backup detalhado criado com sucesso:", dadosBackupProcessos.length);
 }
