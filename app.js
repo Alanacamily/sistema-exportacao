@@ -169,6 +169,7 @@ window.salvarProcesso = async function () {
   limparFormulario();
 
   await carregarProcessos();
+  await criarBackupAutomatico();
 };
 
 function limparFormulario() {
@@ -628,6 +629,7 @@ window.alternarFinanceiro = async function(index) {
   }
 
   await carregarProcessos();
+  await criarBackupAutomatico();
 }; 
 
 function atualizarDashboard() {
@@ -652,11 +654,11 @@ function atualizarDashboard() {
   }).length;
 
   const totalAduana = baseDashboard.filter(function(p) {
-    return p.aduanaIntegrada;
+  return p.aduanaIntegrada;
   }).length;
 
   const totalFracionados = baseDashboard.filter(function(p) {
-    return p.fracionado;
+  return p.fracionado;
   }).length;
 
   const diasFinalizados = [
@@ -1051,3 +1053,61 @@ window.sair = async function() {
   document.getElementById("usuarioLogado").innerText = "";
   document.getElementById("telaLogin").style.display = "flex";
 };
+
+document.addEventListener("keydown", function(event) {
+  if (event.key === "Enter") {
+    const telaLogin = document.getElementById("telaLogin");
+
+    if (telaLogin && telaLogin.style.display !== "none") {
+      fazerLogin();
+    }
+  }
+});
+
+async function criarBackupAutomatico() {
+  console.log("Verificando backup automático...");
+
+  const hojeSistema = new Date().toLocaleDateString("pt-BR");
+  const hojeBanco = new Date().toISOString().split("T")[0];
+
+  const processosHoje = processos.filter(function(p) {
+    return formatarDataLancamentoParaDia(p.dataLancamento) === hojeSistema;
+  });
+
+  console.log("Processos encontrados hoje:", processosHoje.length);
+
+  const { data: backupExistente, error: erroBusca } = await banco
+    .from("backups")
+    .select("id")
+    .eq("data_backup", hojeBanco)
+    .limit(1);
+
+  if (erroBusca) {
+    console.error("Erro ao verificar backup:", erroBusca);
+    return;
+  }
+
+  if (backupExistente && backupExistente.length > 0) {
+    console.log("Backup de hoje já existe.");
+    return;
+  }
+
+  console.log("Criando backup de", processosHoje.length, "processos");
+
+  const { error } = await banco
+    .from("backups")
+    .insert([
+      {
+        data_backup: hojeBanco,
+        total_processos: processosHoje.length,
+        dados_json: processosHoje
+      }
+    ]);
+
+  if (error) {
+    console.error("Erro ao criar backup automático:", error);
+    return;
+  }
+
+  console.log("Backup criado com sucesso.");
+}
