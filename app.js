@@ -1175,7 +1175,7 @@ console.log("Registrando histórico:", acao, processo);
       {
         usuario: usuarioAtual || "Usuário não identificado",
         acao: acao,
-        processo_id: processo?.id || null,
+        processo_id: processo?.id || undefined,
         empresa: processo?.empresa || "",
         fatura: processo?.fatura || "",
         descricao:
@@ -1188,6 +1188,7 @@ console.log("Registrando histórico:", acao, processo);
     ]);
 
   if (error) {
-    console.error("Erro ao registrar histórico:", error);
+    console.error("Erro ao registrar histórico:", JSON.stringify(error));
   }
 }
+
