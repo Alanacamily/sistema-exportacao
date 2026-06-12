@@ -14,6 +14,7 @@ let processos = JSON.parse(localStorage.getItem("processos")) || [];
 let lixeira = JSON.parse(localStorage.getItem("lixeira")) || [];
 let editandoIndex = null;
 let diasAbertos = {};
+let diaSelecionadoExportacao = null;
 let usuarioAtual = null;
 let nivelUsuario = null;
 
@@ -307,29 +308,27 @@ if (diaProcesso !== ultimoDiaRenderizado) {
 
   const linhaDia = document.createElement("tr");
 
- linhaDia.innerHTML = `
+linhaDia.innerHTML = `
   <td colspan="20" class="linha-dia">
-
     📅 ${diaProcesso}
+
+    <button onclick="selecionarDiaExportacao('${diaProcesso}')">
+      Selecionar para PDF/Excel
+    </button>
 
     ${
       diaFinalizado
         ? `
-          <button
-            class="btn-finalizar-dia"
-            onclick="alternarDia('${diaProcesso}')">
+          <button class="btn-finalizar-dia" onclick="alternarDia('${diaProcesso}')">
             ${diaAberto ? "Ocultar" : "Mostrar"}
           </button>
         `
         : `
-          <button
-            class="btn-finalizar-dia"
-            onclick="finalizarDia('${diaProcesso}')">
+          <button class="btn-finalizar-dia" onclick="finalizarDia('${diaProcesso}')">
             ✅ Finalizar Dia
           </button>
         `
     }
-
   </td>
 `;
 
@@ -663,9 +662,24 @@ function dadosFiltrados() {
 }
 
 function exportarExcel() {
-  const dados = dadosFiltrados().map(function(p) {
+  if (!diaSelecionadoExportacao) {
+    alert("Selecione um dia antes de exportar.");
+    return;
+  }
+
+  const processosExportar = processos.filter(function(p) {
+    return formatarDataLancamentoParaDia(p.dataLancamento) === diaSelecionadoExportacao;
+  });
+
+  if (processosExportar.length === 0) {
+    alert("Não há processos para exportar neste dia.");
+    return;
+  }
+
+  const dados = processosExportar.map(function(p) {
     return {
       Empresa: p.empresa,
+      CNPJ: p.cnpj,
       Quantidade: p.quantidade,
       "Data Averbação": formatarData(p.dataAverbacao),
       CRT: p.crt,
@@ -689,48 +703,68 @@ function exportarExcel() {
   const planilha = XLSX.utils.json_to_sheet(dados);
   const arquivo = XLSX.utils.book_new();
 
-  XLSX.utils.book_append_sheet(arquivo, planilha, "Processos");
-  XLSX.writeFile(arquivo, `processos_exportacao_${dataArquivo()}.xlsx`);
+  XLSX.utils.book_append_sheet(arquivo, planilha, diaSelecionadoExportacao);
+
+  XLSX.writeFile(
+    arquivo,
+    `processos_exportacao_${diaSelecionadoExportacao.replaceAll("/", "-")}.xlsx`
+  );
 }
 
 function exportarPDF() {
+  if (!diaSelecionadoExportacao) {
+    alert("Selecione um dia antes de exportar.");
+    return;
+  }
+
+  const processosExportar = processos.filter(function(p) {
+    return formatarDataLancamentoParaDia(p.dataLancamento) === diaSelecionadoExportacao;
+  });
+
+  if (processosExportar.length === 0) {
+    alert("Não há processos para exportar neste dia.");
+    return;
+  }
+
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF("landscape");
-
-  const dados = dadosFiltrados();
 
   pdf.setFontSize(16);
   pdf.text("Relatório de Processos de Exportação", 14, 15);
 
   pdf.setFontSize(10);
-  pdf.text(`Data de emissão: ${new Date().toLocaleString("pt-BR")}`, 14, 23);
-  pdf.text(`Quantidade de registros: ${dados.length}`, 14, 29);
+  pdf.text(`Data do relatório: ${diaSelecionadoExportacao}`, 14, 23);
+  pdf.text(`Data de emissão: ${new Date().toLocaleString("pt-BR")}`, 14, 29);
+  pdf.text(`Quantidade de registros: ${processosExportar.length}`, 14, 35);
 
-  const corpo = dados.map(function(p) {
+  const corpo = processosExportar.map(function(p) {
     return [
-      p.empresa,
+      p.empresa || "",
+      p.cnpj || "",
       p.quantidade || "",
       formatarData(p.dataAverbacao),
       p.crt || "",
-      p.fatura,
+      p.mercadoria || "",
+      p.fatura || "",
       p.numeroDue || "",
       p.numeroVeiculo || "",
       p.transporte || "",
       p.pesoLiquido || "",
       p.fracionado ? "Sim" : "Não",
       p.aduanaIntegrada ? "Sim" : "Não",
-      p.financeiroCobrou ? "Cobrado" : "Pendente",
-      p.dataLancamento
+      p.financeiroCobrou ? "Cobrado" : "Pendente"
     ];
   });
 
   pdf.autoTable({
-    startY: 35,
+    startY: 42,
     head: [[
       "Empresa",
+      "CNPJ",
       "Qtd",
       "Averbação",
       "CRT",
+      "Mercadoria",
       "Fatura",
       "DUE",
       "Veículo",
@@ -738,8 +772,7 @@ function exportarPDF() {
       "Peso",
       "Fracionado",
       "Aduana",
-      "Financeiro",
-      "Lançamento"
+      "Financeiro"
     ]],
     body: corpo,
     styles: {
@@ -750,7 +783,7 @@ function exportarPDF() {
     }
   });
 
-  pdf.save(`processos_exportacao_${dataArquivo()}.pdf`);
+  pdf.save(`processos_exportacao_${diaSelecionadoExportacao.replaceAll("/", "-")}.pdf`);
 }
 
 function formatarData(data) {
@@ -827,13 +860,12 @@ window.fazerLogin = async function() {
 
   usuarioAtual = data.user.email;
 
-window.sair = async function() {
-  await banco.auth.signOut();
+  await carregarNivelUsuario(usuarioAtual);
 
-  usuarioAtual = null;
+  document.getElementById("telaLogin").style.display = "none";
+  document.getElementById("usuarioLogado").innerText = data.user.email;
 
-  document.getElementById("telaLogin").style.display = "flex";
-  document.getElementById("usuarioLogado").innerText = "";
+  await carregarProcessos();
 };
 
 async function verificarLogin() {
@@ -931,6 +963,11 @@ window.finalizarDia = async function(dia) {
     return p.id;
   });
 
+  if (ids.length === 0) {
+    alert("Nenhum processo encontrado para esse dia.");
+    return;
+  }
+
   const { error } = await banco
     .from("processos")
     .update({ dia_finalizado: true })
@@ -949,6 +986,15 @@ window.finalizarDia = async function(dia) {
 
 window.alternarDia = function(dia) {
   diasAbertos[dia] = !diasAbertos[dia];
+
+  if (diasAbertos[dia]) {
+    diaSelecionadoExportacao = dia;
+  }
+
   renderizarTabela();
 };
-}
+
+window.selecionarDiaExportacao = function(dia) {
+  diaSelecionadoExportacao = dia;
+  alert("Dia selecionado para exportação: " + dia);
+};
