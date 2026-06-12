@@ -38,6 +38,26 @@
     </div>
 
     <div class="card">
+  <p>Hoje</p>
+  <h2 id="totalHoje">0</h2>
+</div>
+
+<div class="card">
+  <p>Aduana Integrada</p>
+  <h2 id="totalAduana">0</h2>
+</div>
+
+<div class="card">
+  <p>Fracionados</p>
+  <h2 id="totalFracionados">0</h2>
+</div>
+
+<div class="card">
+  <p>Dias Finalizados</p>
+  <h2 id="totalDiasFinalizados">0</h2>
+</div>
+
+    <div class="card">
       <p>Pendentes</p>
       <h2 id="totalPendentes">0</h2>
     </div>
@@ -189,12 +209,21 @@
 </body>
 
 <div id="telaLogin" class="login-screen">
-  <div class="login-box">
-    <h2>Login</h2>
+  <div class="login-box login-novo">
+    <div class="login-logo">📦</div>
 
-   <input id="loginEmail" type="email" placeholder="E-mail">
-   <input id="loginSenha" type="password" placeholder="Senha">
-   <button onclick="fazerLogin()">Entrar</button>
+    <h2>EXPORT SYSTEM</h2>
+    <p>Sistema de Controle de Exportação</p>
+
+    <label>Email</label>
+    <input id="loginEmail" type="email" placeholder="Digite seu e-mail">
+
+    <label>Senha</label>
+    <input id="loginSenha" type="password" placeholder="Digite sua senha">
+
+    <button onclick="fazerLogin()">➡ Entrar</button>
+
+    <small>Multilog Tech • Versão 2.0</small>
 
     <p id="loginErro"></p>
   </div>
