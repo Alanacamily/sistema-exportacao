@@ -239,6 +239,19 @@ function renderizarBotoesAcao(index) {
   return botoes;
 }
 
+function formatarDataLancamentoParaDia(dataLancamento) {
+  if (!dataLancamento) {
+    return "Sem data";
+  }
+
+  if (String(dataLancamento).includes("T")) {
+    const data = new Date(dataLancamento);
+    return data.toLocaleDateString("pt-BR");
+  }
+
+  return String(dataLancamento).split(",")[0];
+}
+
 function renderizarTabela() {
   const tbody = document.getElementById("tabelaProcessos");
   const busca = document.getElementById("busca").value.toLowerCase();
@@ -883,7 +896,6 @@ function formatarDataLancamentoParaDia(dataLancamento) {
 
   if (dataLancamento.includes("T")) {
     const data = new Date(dataLancamento);
-
     return data.toLocaleDateString("pt-BR");
   }
 
