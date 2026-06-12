@@ -1084,7 +1084,7 @@ document.addEventListener("keydown", function(event) {
     .limit(1);
 
   if (erroBusca) {
-    console.error("Erro ao verificar backup:", erroBusca);
+    console.error("Erro ao verificar backup:", JSON.stringify(erroBusca));
     return;
   }
 
@@ -1106,7 +1106,7 @@ document.addEventListener("keydown", function(event) {
   console.log("Resultado insert:", error);
 
   if (error) {
-    console.error("Erro ao criar backup automático:", error);
+    console.error("Erro ao criar backup automático:", JSON.stringify(error));
     return;
   }
 
