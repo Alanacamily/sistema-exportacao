@@ -166,10 +166,20 @@ window.salvarProcesso = async function () {
     document.getElementById("btnSalvar").innerText = "Salvar Processo";
   }
 
-  limparFormulario();
+await registrarHistorico(
+  editandoIndex === null ? "Processo criado" : "Processo editado",
+  {
+    id: editandoIndex === null ? null : processos[editandoIndex].id,
+    empresa: empresa,
+    fatura: fatura
+  }
+);
 
-  await carregarProcessos();
-  await criarBackupAutomatico();
+limparFormulario();
+
+await carregarProcessos();
+await criarBackupAutomatico();
+
 };
 
 function limparFormulario() {
@@ -874,10 +884,6 @@ function dataArquivo() {
   return `${dia}-${mes}-${ano}`;
 }
 
-renderizarTabela();
-renderizarLixeira();
-
-window.salvarProcesso = salvarProcesso;
 window.renderizarTabela = renderizarTabela;
 window.abrirLixeira = abrirLixeira;
 window.fecharLixeira = fecharLixeira;
@@ -1065,7 +1071,7 @@ document.addEventListener("keydown", function(event) {
   }
 });
 
- async function criarBackupAutomatico() {
+async function criarBackupAutomatico() {
   console.log("=== BACKUP INICIADO ===");
 
   const hojeSistema = new Date().toLocaleDateString("pt-BR");
@@ -1157,4 +1163,31 @@ document.addEventListener("keydown", function(event) {
   }
 
   console.log("Backup detalhado criado com sucesso:", dadosBackupProcessos.length);
+}
+
+async function registrarHistorico(acao, processo) {
+
+console.log("Registrando histórico:", acao, processo);
+
+  const { error } = await banco
+    .from("historico_acoes")
+    .insert([
+      {
+        usuario: usuarioAtual || "Usuário não identificado",
+        acao: acao,
+        processo_id: processo?.id || null,
+        empresa: processo?.empresa || "",
+        fatura: processo?.fatura || "",
+        descricao:
+          acao +
+          " - " +
+          (processo?.empresa || "") +
+          " - " +
+          (processo?.fatura || "")
+      }
+    ]);
+
+  if (error) {
+    console.error("Erro ao registrar histórico:", error);
+  }
 }
