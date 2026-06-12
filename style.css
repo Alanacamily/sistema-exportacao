@@ -377,3 +377,80 @@ tr.cobrado {
   padding: 6px 12px;
   cursor: pointer;
 }
+
+.login-screen {
+  position: fixed;
+  inset: 0;
+  background: #020617;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+}
+
+.login-novo {
+  width: 380px;
+  background: #1f1f1f;
+  border: 1px solid #3a3a3a;
+  border-radius: 18px;
+  padding: 36px;
+  color: white;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+}
+
+.login-logo {
+  font-size: 48px;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.login-novo h2 {
+  text-align: center;
+  color: #38bdf8;
+  margin-bottom: 4px;
+}
+
+.login-novo p {
+  text-align: center;
+  color: #94a3b8;
+  margin-bottom: 28px;
+}
+
+.login-novo label {
+  font-weight: bold;
+  margin-top: 12px;
+  margin-bottom: 6px;
+}
+
+.login-novo input {
+  width: 100%;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background: #111827;
+  color: white;
+  margin-bottom: 16px;
+}
+
+.login-novo button {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  background: #0891b2;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.login-novo button:hover {
+  background: #06b6d4;
+}
+
+.login-novo small {
+  display: block;
+  text-align: center;
+  color: #94a3b8;
+  margin-top: 24px;
+}
