@@ -488,7 +488,6 @@ window.excluirProcesso = async function(index) {
 
   alert("Processo movido para a lixeira!");
 
-  await carregarProcessos();
   await carregarLixeira();
 };
 
@@ -908,6 +907,7 @@ window.fazerLogin = async function() {
 
   await carregarNivelUsuario(usuarioAtual);
   await carregarProcessos();
+  await criarBackupAutomatico();
 
   document.getElementById("telaLogin").style.display = "none";
   document.getElementById("usuarioLogado").innerText = data.user.email;
@@ -921,6 +921,7 @@ async function verificarLogin() {
 
     await carregarNivelUsuario(usuarioAtual);
     await carregarProcessos();
+    await criarBackupAutomatico();
 
     document.getElementById("telaLogin").style.display = "none";
     document.getElementById("usuarioLogado").innerText =
