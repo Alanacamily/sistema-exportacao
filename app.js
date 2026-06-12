@@ -1083,10 +1083,14 @@ document.addEventListener("keydown", function(event) {
     .eq("data_backup", hojeBanco)
     .limit(1);
 
-  if (erroBusca) {
-    console.error("Erro ao verificar backup:", JSON.stringify(erroBusca));
-    return;
-  }
+ if (erroBusca) {
+  console.log("ERRO COMPLETO:", erroBusca);
+  console.log("CODE:", erroBusca.code);
+  console.log("MESSAGE:", erroBusca.message);
+  console.log("DETAILS:", erroBusca.details);
+  console.log("HINT:", erroBusca.hint);
+  return;
+}
 
   if (backupExistente && backupExistente.length > 0) {
     console.log("Backup de hoje já existe.");
