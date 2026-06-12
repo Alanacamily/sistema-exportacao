@@ -1166,26 +1166,24 @@ async function criarBackupAutomatico() {
 }
 
 async function registrarHistorico(acao, processo) {
+  console.log("Registrando histórico:", acao, processo);
 
-console.log("Registrando histórico:", acao, processo);
+  const registro = {
+    usuario: usuarioAtual || "Usuário não identificado",
+    acao: acao,
+    empresa: processo?.empresa || "",
+    fatura: processo?.fatura || "",
+    descricao:
+      acao +
+      " - " +
+      (processo?.empresa || "") +
+      " - " +
+      (processo?.fatura || "")
+  };
 
   const { error } = await banco
     .from("historico_acoes")
-    .insert([
-      {
-        usuario: usuarioAtual || "Usuário não identificado",
-        acao: acao,
-        processo_id: processo?.id || undefined,
-        empresa: processo?.empresa || "",
-        fatura: processo?.fatura || "",
-        descricao:
-          acao +
-          " - " +
-          (processo?.empresa || "") +
-          " - " +
-          (processo?.fatura || "")
-      }
-    ]);
+    .insert([registro]);
 
   if (error) {
     console.error("Erro ao registrar histórico:", JSON.stringify(error));
