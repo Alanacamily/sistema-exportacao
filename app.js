@@ -1065,8 +1065,8 @@ document.addEventListener("keydown", function(event) {
   }
 });
 
-async function criarBackupAutomatico() {
-  console.log("Verificando backup automático...");
+ async function criarBackupAutomatico() {
+  console.log("=== BACKUP INICIADO ===");
 
   const hojeSistema = new Date().toLocaleDateString("pt-BR");
   const hojeBanco = new Date().toISOString().split("T")[0];
@@ -1075,7 +1075,7 @@ async function criarBackupAutomatico() {
     return formatarDataLancamentoParaDia(p.dataLancamento) === hojeSistema;
   });
 
-  console.log("Processos encontrados hoje:", processosHoje.length);
+  console.log("Processos hoje:", processosHoje);
 
   const { data: backupExistente, error: erroBusca } = await banco
     .from("backups")
@@ -1093,8 +1093,6 @@ async function criarBackupAutomatico() {
     return;
   }
 
-  console.log("Criando backup de", processosHoje.length, "processos");
-
   const { error } = await banco
     .from("backups")
     .insert([
@@ -1104,6 +1102,8 @@ async function criarBackupAutomatico() {
         dados_json: processosHoje
       }
     ]);
+
+  console.log("Resultado insert:", error);
 
   if (error) {
     console.error("Erro ao criar backup automático:", error);
