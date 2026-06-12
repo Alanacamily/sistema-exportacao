@@ -63,7 +63,14 @@ async function carregarProcessos() {
     };
   });
 
-  renderizarTabela();
+processos.sort(function(a, b) {
+  const dataA = new Date(a.dataLancamento);
+  const dataB = new Date(b.dataLancamento);
+
+  return dataB - dataA;
+});
+
+renderizarTabela();
 }
 
 window.salvarProcesso = async function () {
@@ -300,22 +307,31 @@ if (diaProcesso !== ultimoDiaRenderizado) {
 
   const linhaDia = document.createElement("tr");
 
-  linhaDia.innerHTML = `
-    <td colspan="20" class="linha-dia">
-      📅 ${diaProcesso}
-      ${diaFinalizado ? " — FINALIZADO" : ""}
+ linhaDia.innerHTML = `
+  <td colspan="20" class="linha-dia">
 
-      ${
-        diaFinalizado
-          ? `<button class="btn-finalizar-dia" onclick="alternarDia('${diaProcesso}')">
-              ${diaAberto ? "Ocultar" : "Mostrar"}
-            </button>`
-          : `<button class="btn-finalizar-dia" onclick="finalizarDia('${diaProcesso}')">
-              Finalizar dia
-            </button>`
-      }
-    </td>
-  `;
+    📅 ${diaProcesso}
+
+    ${
+      diaFinalizado
+        ? `
+          <button
+            class="btn-finalizar-dia"
+            onclick="alternarDia('${diaProcesso}')">
+            ${diaAberto ? "Ocultar" : "Mostrar"}
+          </button>
+        `
+        : `
+          <button
+            class="btn-finalizar-dia"
+            onclick="finalizarDia('${diaProcesso}')">
+            ✅ Finalizar Dia
+          </button>
+        `
+    }
+
+  </td>
+`;
 
   tbody.appendChild(linhaDia);
 }
