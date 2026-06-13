@@ -454,3 +454,75 @@ tr.cobrado {
   color: #94a3b8;
   margin-top: 24px;
 }
+
+.dia-finalizado button {
+  opacity: 0.9;
+}
+
+.status-finalizado {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #16a34a;
+  border: 1px solid #16a34a;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  line-height: 16px;
+  text-align: center;
+}
+
+.login-screen {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at top, rgba(14, 165, 233, 0.18), transparent 35%),
+    #020617;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+}
+
+.login-novo {
+  animation: subirLogin 0.7s ease forwards;
+  backdrop-filter: blur(10px);
+}
+
+.login-logo {
+  animation: flutuarLogo 3s ease-in-out infinite;
+}
+
+@keyframes subirLogin {
+  from {
+    opacity: 0;
+    transform: translateY(35px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes flutuarLogo {
+  0%, 100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.login-novo button {
+  background: linear-gradient(135deg, #0891b2, #06b6d4);
+  box-shadow: 0 10px 25px rgba(6, 182, 212, 0.25);
+  transition: 0.25s;
+}
+
+.login-novo button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(6, 182, 212, 0.35);
+}
