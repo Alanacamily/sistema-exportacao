@@ -17,7 +17,7 @@ let diasAbertos = {};
 let diaSelecionadoExportacao = null;
 let usuarioAtual = null;
 let nivelUsuario = null;
-let nivelUsuario = null;
+let realtimeAtivado = false;
 
 function mostrarLoading() {
   const loading = document.getElementById("loadingSistema");
