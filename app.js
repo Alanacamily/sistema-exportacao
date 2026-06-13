@@ -1189,4 +1189,3 @@ async function registrarHistorico(acao, processo) {
     console.error("Erro ao registrar histórico:", JSON.stringify(error));
   }
 }
-
