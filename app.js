@@ -10,17 +10,28 @@ const banco = supabase.createClient(
 
 console.log("Supabase conectado:", banco);
 
-let processos = JSON.parse(localStorage.getItem("processos")) || [];
-let lixeira = JSON.parse(localStorage.getItem("lixeira")) || [];
+let processos = [];
+let lixeira = [];
 let editandoIndex = null;
 let diasAbertos = {};
 let diaSelecionadoExportacao = null;
 let usuarioAtual = null;
 let nivelUsuario = null;
 
-function salvarLocal() {
-  localStorage.setItem("processos", JSON.stringify(processos));
-  localStorage.setItem("lixeira", JSON.stringify(lixeira));
+function mostrarLoading() {
+  const loading = document.getElementById("loadingSistema");
+
+  if (loading) {
+    loading.style.display = "block";
+  }
+}
+
+function esconderLoading() {
+  const loading = document.getElementById("loadingSistema");
+
+  if (loading) {
+    loading.style.display = "none";
+  }
 }
 
 function valor(id) {
@@ -28,6 +39,9 @@ function valor(id) {
 }
 
 async function carregarProcessos() {
+
+  mostrarLoading();
+
   const { data, error } = await banco
     .from("processos")
     .select("*")
@@ -35,8 +49,10 @@ async function carregarProcessos() {
 
   if (error) {
     console.error("Erro ao carregar processos:", error);
+    esconderLoading();
     return;
   }
+
 
   processos = data.map(function(p) {
     return {
@@ -72,6 +88,8 @@ processos.sort(function(a, b) {
 });
 
 renderizarTabela();
+
+esconderLoading();
 }
 
 window.salvarProcesso = async function () {
@@ -619,7 +637,6 @@ window.excluirDefinitivo = async function(index) {
 };
 
 window.alternarFinanceiro = async function(index) {
-
   const processo = processos[index];
 
   const novoStatus = !processo.financeiroCobrou;
@@ -637,9 +654,22 @@ window.alternarFinanceiro = async function(index) {
     return;
   }
 
-  await carregarProcessos();
+  processos[index].financeiroCobrou = novoStatus;
+
+  await registrarHistorico(
+    novoStatus ? "Financeiro marcou como cobrado" : "Financeiro removeu cobrança",
+    {
+      id: processo.id,
+      empresa: processo.empresa,
+      fatura: processo.fatura
+    }
+  );
+
+  renderizarTabela();
+  atualizarDashboard();
+
   await criarBackupAutomatico();
-}; 
+};
 
 function atualizarDashboard() {
   const baseDashboard = diaSelecionadoExportacao
@@ -913,6 +943,7 @@ window.fazerLogin = async function() {
 
   await carregarNivelUsuario(usuarioAtual);
   await carregarProcessos();
+  ativarRealtimeProcessos();
   await criarBackupAutomatico();
 
   document.getElementById("telaLogin").style.display = "none";
@@ -927,6 +958,7 @@ async function verificarLogin() {
 
     await carregarNivelUsuario(usuarioAtual);
     await carregarProcessos();
+    ativarRealtimeProcessos();
     await criarBackupAutomatico();
 
     document.getElementById("telaLogin").style.display = "none";
@@ -1188,4 +1220,22 @@ async function registrarHistorico(acao, processo) {
   if (error) {
     console.error("Erro ao registrar histórico:", JSON.stringify(error));
   }
+}
+
+function ativarRealtimeProcessos() {
+  banco
+    .channel("processos-realtime")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "processos"
+      },
+      async function(payload) {
+        console.log("Alteração em tempo real:", payload);
+        await carregarProcessos();
+      }
+    )
+    .subscribe();
 }
