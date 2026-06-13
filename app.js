@@ -17,6 +17,7 @@ let diasAbertos = {};
 let diaSelecionadoExportacao = null;
 let usuarioAtual = null;
 let nivelUsuario = null;
+let nivelUsuario = null;
 
 function mostrarLoading() {
   const loading = document.getElementById("loadingSistema");
@@ -1243,6 +1244,12 @@ async function registrarHistorico(acao, processo) {
 }
 
 function ativarRealtimeProcessos() {
+  if (realtimeAtivado) {
+    return;
+  }
+
+  realtimeAtivado = true;
+
   banco
     .channel("processos-realtime")
     .on(
