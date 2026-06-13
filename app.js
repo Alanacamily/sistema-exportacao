@@ -939,19 +939,30 @@ window.fazerLogin = async function() {
     return;
   }
 
-  usuarioAtual = data.user.email;
+usuarioAtual = data.user.email;
 
-  await carregarNivelUsuario(usuarioAtual);
-  await carregarProcessos();
-  ativarRealtimeProcessos();
-  await criarBackupAutomatico();
+await carregarNivelUsuario(usuarioAtual);
+await carregarProcessos();
+ativarRealtimeProcessos();
+await criarBackupAutomatico();
 
-  document.getElementById("telaLogin").style.display = "none";
-  document.getElementById("usuarioLogado").innerText = data.user.email;
+const telaLogin = document.getElementById("telaLogin");
+const usuarioLogadoEl = document.getElementById("usuarioLogado");
+
+if (telaLogin) {
+  telaLogin.style.display = "none";
+}
+
+if (usuarioLogadoEl) {
+  usuarioLogadoEl.innerText = data.user.email;
+}
 };
 
 async function verificarLogin() {
   const { data } = await banco.auth.getSession();
+
+  const telaLogin = document.getElementById("telaLogin");
+  const usuarioLogadoEl = document.getElementById("usuarioLogado");
 
   if (data.session) {
     usuarioAtual = data.session.user.email;
@@ -961,15 +972,24 @@ async function verificarLogin() {
     ativarRealtimeProcessos();
     await criarBackupAutomatico();
 
-    document.getElementById("telaLogin").style.display = "none";
-    document.getElementById("usuarioLogado").innerText =
-      data.session.user.email;
+    if (telaLogin) {
+      telaLogin.style.display = "none";
+    }
+
+    if (usuarioLogadoEl) {
+      usuarioLogadoEl.innerText = data.session.user.email;
+    }
   } else {
     usuarioAtual = null;
     nivelUsuario = null;
 
-    document.getElementById("telaLogin").style.display = "flex";
-    document.getElementById("usuarioLogado").innerText = "";
+    if (telaLogin) {
+      telaLogin.style.display = "flex";
+    }
+
+    if (usuarioLogadoEl) {
+      usuarioLogadoEl.innerText = "";
+    }
   }
 }
 
