@@ -547,6 +547,15 @@ window.fecharLixeira = function() {
   document.getElementById("modalLixeira").style.display = "none";
  };
 
+window.abrirLixeira = async function() {
+  document.getElementById("modalLixeira").style.display = "flex";
+  await carregarLixeira();
+};
+
+window.fecharLixeira = function() {
+  document.getElementById("modalLixeira").style.display = "none";
+};
+
 async function carregarLixeira() {
   const { data, error } = await banco
     .from("processos")
@@ -934,8 +943,6 @@ function dataArquivo() {
 }
 
 window.renderizarTabela = renderizarTabela;
-window.abrirLixeira = abrirLixeira;
-window.fecharLixeira = fecharLixeira;
 window.exportarExcel = exportarExcel;
 window.exportarPDF = exportarPDF;
 
