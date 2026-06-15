@@ -502,32 +502,50 @@ window.excluirProcesso = async function(index) {
     return;
   }
 
-  const id = processos[index].id;
+  const processo = processos[index];
 
-  const { error } = await banco
+  const { error: erroProcesso } = await banco
     .from("processos")
     .update({ excluido: true })
-    .eq("id", id);
+    .eq("id", processo.id);
 
-  if (error) {
-    console.error("Erro ao mover para lixeira:", error);
+  if (erroProcesso) {
+    console.error("Erro ao mover para lixeira:", erroProcesso);
     alert("Erro ao mover para a lixeira.");
     return;
   }
 
+  const { error: erroLixeira } = await banco
+    .from("lixeira")
+    .insert([
+      {
+        processo_id: processo.id,
+        empresa: processo.empresa || "",
+        cnpj: processo.cnpj || "",
+        fatura: processo.fatura || "",
+        excluido_por: usuarioAtual || "Usuário não identificado"
+      }
+    ]);
+
+  if (erroLixeira) {
+    console.error("Erro ao registrar na tabela lixeira:", erroLixeira);
+  }
+
+  await registrarHistorico("Processo movido para lixeira", {
+    id: processo.id,
+    empresa: processo.empresa,
+    fatura: processo.fatura
+  });
+
   alert("Processo movido para a lixeira!");
 
+  await carregarProcessos();
   await carregarLixeira();
-};
-
-window.abrirLixeira = async function() {
-  document.getElementById("modalLixeira").style.display = "flex";
-  await carregarLixeira();
-};
+ };
 
 window.fecharLixeira = function() {
   document.getElementById("modalLixeira").style.display = "none";
-};
+ };
 
 async function carregarLixeira() {
   const { data, error } = await banco
