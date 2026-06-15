@@ -55,8 +55,8 @@ async function carregarProcessos() {
   }
 
 
-  processos = data.map(function(p) {
-    return {
+      processos = data.map(function(p) {
+      return {
       id: p.id,
       empresa: p.empresa || "",
       cnpj: p.cnpj || "",
@@ -75,6 +75,7 @@ async function carregarProcessos() {
       responsavelCo: p.responsavel_co || "",
       aduanaIntegrada: !!p.aduana_integrada,
       fracionado: p.aduana_integrada ? false : !!p.fracionado,
+      parceiro: p.parceiro || "",
       financeiroCobrou: p.financeiro_cobrou || false,
       dataLancamento: p.data_lancamento || "",
       diaFinalizado: p.dia_finalizado || false
@@ -82,10 +83,11 @@ async function carregarProcessos() {
   });
 
 processos.sort(function(a, b) {
-  const dataA = new Date(a.dataLancamento);
-  const dataB = new Date(b.dataLancamento);
-
-  return dataB - dataA;
+  return (a.empresa || "").localeCompare(
+    b.empresa || "",
+    "pt-BR",
+    { sensitivity: "base" }
+  );
 });
 
 renderizarTabela();
@@ -107,8 +109,9 @@ window.salvarProcesso = async function () {
   const pesoLiquido = valor("pesoLiquido");
   const numeroDue = valor("numeroDue").trim();
   const lpco = valor("lpco").trim();
-
+  const parceiro = valor("parceiro").trim();
   const aduanaIntegrada =
+
     document.getElementById("aduanaIntegrada").checked;
 
   if (!empresa || !fatura) {
@@ -131,6 +134,8 @@ window.salvarProcesso = async function () {
     peso_liquido: pesoLiquido || null,
     numero_due: aduanaIntegrada ? null : numeroDue || null,
     lpco: aduanaIntegrada ? null : lpco || null,
+    parceiro: parceiro || null,
+
 
     responsavel_due: aduanaIntegrada
       ? null
@@ -214,6 +219,7 @@ function limparFormulario() {
     "numeroVeiculo",
     "transporte",
     "pesoLiquido",
+    "parceiro",
     "numeroDue",
     "lpco"
   ];
@@ -391,8 +397,9 @@ if (p.aduanaIntegrada) {
     </td>
 
     <td></td>
-    <td>${p.pesoLiquido || ""}</td>
-    <td>${p.numeroDue || "-"}</td>
+   <td>${p.pesoLiquido || ""}</td>
+   <td>${p.parceiro || ""}</td>
+   <td>${p.numeroDue || ""}</td>
     <td>${p.responsavelDue === "Exacta" ? "X" : "-"}</td>
     <td>${p.responsavelDue === "Parceiro" ? "X" : "-"}</td>
     <td>${p.responsavelCo === "Exacta" ? "X" : "-"}</td>
@@ -415,7 +422,8 @@ if (p.aduanaIntegrada) {
     <td>${p.numeroVeiculo || ""}</td>
     <td>${p.transporte || ""}</td>
     <td>${p.pesoLiquido || ""}</td>
-    <td>${p.numeroDue || ""}</td>
+    <td>${p.parceiro || "-"}</td>
+    <td>${p.numeroDue || "-"}</td>
     <td>${p.responsavelDue === "Exacta" ? "Exacta" : "-"}</td>
     <td>${p.responsavelDue === "Parceiro" ? "Parceiro" : "-"}</td>
     <td>${p.responsavelCo === "Exacta" ? "Exacta" : "-"}</td>
@@ -465,6 +473,7 @@ tbody.appendChild(tr);
   document.getElementById("numeroVeiculo").value = p.numeroVeiculo || "";
   document.getElementById("transporte").value = p.transporte || "";
   document.getElementById("pesoLiquido").value = p.pesoLiquido || "";
+  document.getElementById("parceiro").value = p.parceiro || "";
   document.getElementById("numeroDue").value = p.numeroDue || "";
   document.getElementById("lpco").value = p.lpco || "";
 
@@ -775,117 +784,95 @@ function dadosFiltrados() {
 }
 
 function exportarExcel() {
-  if (!diaSelecionadoExportacao) {
-    alert("Selecione um dia antes de exportar.");
+  if (processos.length === 0) {
+    alert("Não há processos para exportar.");
     return;
   }
 
-  const processosExportar = processos.filter(function(p) {
-    return formatarDataLancamentoParaDia(p.dataLancamento) === diaSelecionadoExportacao;
+  const processosExportar = [...processos].sort(function(a, b) {
+    return (a.empresa || "").localeCompare(
+      b.empresa || "",
+      "pt-BR",
+      { sensitivity: "base" }
+    );
   });
-
-  if (processosExportar.length === 0) {
-    alert("Não há processos para exportar neste dia.");
-    return;
-  }
 
   const dados = processosExportar.map(function(p) {
     return {
-      Empresa: p.empresa,
-      CNPJ: p.cnpj,
-      Quantidade: p.quantidade,
-      "Data Averbação": formatarData(p.dataAverbacao),
-      CRT: p.crt,
-      Mercadoria: p.mercadoria,
-      Fatura: p.fatura,
-      Observação: p.observacao,
-      Veículo: p.numeroVeiculo,
-      Transporte: p.transporte,
-      "Peso Líquido": p.pesoLiquido,
-      DUE: p.numeroDue,
-      "DUE por": p.responsavelDue,
-      "CO por": p.responsavelCo,
-      LPCO: p.lpco,
-      Fracionado: p.fracionado ? "Sim" : "Não",
-      "Aduana Integrada": p.aduanaIntegrada ? "Sim" : "Não",
-      Financeiro: p.financeiroCobrou ? "Cobrado" : "Pendente",
-      "Data de Lançamento": p.dataLancamento
+      Empresa: p.empresa || "",
+      CNPJ: p.cnpj || "",
+      Fatura: p.fatura || "",
+      DUE: p.numeroDue || "",
+      Parceiro: p.parceiro || "",
+      Tipo: p.aduanaIntegrada ? "ADUANA INTEGRADA" : "NORMAL",
+      Fracionado: p.fracionado ? "SIM" : "NÃO",
+      Financeiro: p.financeiroCobrou ? "COBRADO" : "PENDENTE",
+      Peso: p.pesoLiquido || ""
+  
     };
   });
 
   const planilha = XLSX.utils.json_to_sheet(dados);
   const arquivo = XLSX.utils.book_new();
 
-  XLSX.utils.book_append_sheet(arquivo, planilha, diaSelecionadoExportacao);
+  XLSX.utils.book_append_sheet(arquivo, planilha, "Relatório Geral");
 
   XLSX.writeFile(
     arquivo,
-    `processos_exportacao_${diaSelecionadoExportacao.replaceAll("/", "-")}.xlsx`
+    `relatorio_geral_processos_${dataArquivo()}.xlsx`
   );
 }
 
 function exportarPDF() {
-  if (!diaSelecionadoExportacao) {
-    alert("Selecione um dia antes de exportar.");
+  if (processos.length === 0) {
+    alert("Não há processos para exportar.");
     return;
   }
 
-  const processosExportar = processos.filter(function(p) {
-    return formatarDataLancamentoParaDia(p.dataLancamento) === diaSelecionadoExportacao;
+  const processosExportar = [...processos].sort(function(a, b) {
+    return (a.empresa || "").localeCompare(
+      b.empresa || "",
+      "pt-BR",
+      { sensitivity: "base" }
+    );
   });
-
-  if (processosExportar.length === 0) {
-    alert("Não há processos para exportar neste dia.");
-    return;
-  }
 
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF("landscape");
 
   pdf.setFontSize(16);
-  pdf.text("Relatório de Processos de Exportação", 14, 15);
+  pdf.text("Relatório Geral de Processos de Exportação", 14, 15);
 
   pdf.setFontSize(10);
-  pdf.text(`Data do relatório: ${diaSelecionadoExportacao}`, 14, 23);
-  pdf.text(`Data de emissão: ${new Date().toLocaleString("pt-BR")}`, 14, 29);
-  pdf.text(`Quantidade de registros: ${processosExportar.length}`, 14, 35);
+  pdf.text(`Data de emissão: ${new Date().toLocaleString("pt-BR")}`, 14, 23);
+  pdf.text(`Quantidade de registros: ${processosExportar.length}`, 14, 29);
 
   const corpo = processosExportar.map(function(p) {
     return [
       p.empresa || "",
       p.cnpj || "",
-      p.quantidade || "",
-      formatarData(p.dataAverbacao),
-      p.crt || "",
-      p.mercadoria || "",
       p.fatura || "",
       p.numeroDue || "",
-      p.numeroVeiculo || "",
-      p.transporte || "",
-      p.pesoLiquido || "",
-      p.fracionado ? "Sim" : "Não",
-      p.aduanaIntegrada ? "Sim" : "Não",
-      p.financeiroCobrou ? "Cobrado" : "Pendente"
+      p.parceiro || "",
+      p.aduanaIntegrada ? "ADUANA INTEGRADA" : "NORMAL",
+      p.fracionado ? "SIM" : "NÃO",
+      p.financeiroCobrou ? "COBRADO" : "PENDENTE",
+      p.pesoLiquido || ""
     ];
   });
 
   pdf.autoTable({
-    startY: 42,
+    startY: 36,
     head: [[
       "Empresa",
       "CNPJ",
-      "Qtd",
-      "Averbação",
-      "CRT",
-      "Mercadoria",
       "Fatura",
       "DUE",
-      "Veículo",
-      "Transporte",
-      "Peso",
+      "Parceiro",
+      "Tipo",
       "Fracionado",
-      "Aduana",
-      "Financeiro"
+      "Financeiro",
+      "Peso"
     ]],
     body: corpo,
     styles: {
@@ -896,7 +883,7 @@ function exportarPDF() {
     }
   });
 
-  pdf.save(`processos_exportacao_${diaSelecionadoExportacao.replaceAll("/", "-")}.pdf`);
+  pdf.save(`relatorio_geral_processos_${dataArquivo()}.pdf`);
 }
 
 function formatarData(data) {
