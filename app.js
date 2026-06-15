@@ -1148,47 +1148,65 @@ async function criarBackupAutomatico() {
 
   console.log("Processos hoje:", processosHoje);
 
+  if (processosHoje.length === 0) {
+    console.log("Nenhum processo de hoje para backup.");
+    return;
+  }
+
   const { data: backupExistente, error: erroBusca } = await banco
     .from("backups")
     .select("id")
     .eq("data_backup", hojeBanco)
-    .limit(1);
+    .limit(1)
+    .maybeSingle();
 
   if (erroBusca) {
     console.error("Erro ao verificar backup:", erroBusca);
     return;
   }
 
-  if (backupExistente && backupExistente.length > 0) {
-    console.log("Backup de hoje já existe.");
-    return;
+  let backupId = null;
+
+  if (backupExistente) {
+    backupId = backupExistente.id;
+
+    await banco
+      .from("backups")
+      .update({
+        total_processos: processosHoje.length
+      })
+      .eq("id", backupId);
+
+    await banco
+      .from("backup_processos")
+      .delete()
+      .eq("backup_id", backupId);
+  } else {
+    const { data: backupCriado, error: erroBackup } = await banco
+      .from("backups")
+      .insert([
+        {
+          data_backup: hojeBanco,
+          total_processos: processosHoje.length,
+          dados_json: null
+        }
+      ])
+      .select("id")
+      .single();
+
+    if (erroBackup) {
+      console.error("Erro ao criar registro de backup:", erroBackup);
+      return;
+    }
+
+    backupId = backupCriado.id;
   }
-
-  const { data: backupCriado, error: erroBackup } = await banco
-    .from("backups")
-    .insert([
-      {
-        data_backup: hojeBanco,
-        total_processos: processosHoje.length,
-        dados_json: null
-      }
-    ])
-    .select("id")
-    .single();
-
-  if (erroBackup) {
-    console.error("Erro ao criar registro de backup:", erroBackup);
-    return;
-  }
-
-  const backupId = backupCriado.id;
 
   const dadosBackupProcessos = processosHoje.map(function(p) {
     return {
       backup_id: backupId,
       data_backup: hojeBanco,
       processo_id: p.id,
-
       empresa: p.empresa || "",
       cnpj: p.cnpj || "",
       quantidade: p.quantidade || null,
@@ -1213,11 +1231,6 @@ async function criarBackupAutomatico() {
     };
   });
 
-  if (dadosBackupProcessos.length === 0) {
-    console.log("Nenhum processo de hoje para gravar no backup detalhado.");
-    return;
-  }
-
   const { error: erroDetalhes } = await banco
     .from("backup_processos")
     .insert(dadosBackupProcessos);
@@ -1227,7 +1240,7 @@ async function criarBackupAutomatico() {
     return;
   }
 
-  console.log("Backup detalhado criado com sucesso:", dadosBackupProcessos.length);
+  console.log("Backup atualizado com sucesso:", dadosBackupProcessos.length);
 }
 
 async function registrarHistorico(acao, processo) {
