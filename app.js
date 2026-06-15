@@ -354,20 +354,20 @@ linhaDia.innerHTML = `
       Selecionar para PDF/Excel
     </button>
 
-    ${
-      diaFinalizado
-        ? `
-          <button class="btn-finalizar-dia" onclick="alternarDia('${diaProcesso}')">
-            ${diaAberto ? "Ocultar" : "Mostrar"}
-          </button>
-        `
-        : `
-          <button class="btn-finalizar-dia" onclick="finalizarDia('${diaProcesso}')">
-            ✅ Finalizar Dia
-          </button>
-        `
-    }
-  </td>
+ ${ diaFinalizado ? `
+  <button class="btn-finalizar-dia" onclick="reabrirDia('${diaProcesso}')">
+    🔓 Reabrir Dia
+  </button>
+
+  <button class="btn-finalizar-dia" onclick="alternarDia('${diaProcesso}')">
+    ${diaAberto ? "Ocultar" : "Mostrar"}
+  </button>
+` : `
+  <button class="btn-finalizar-dia" onclick="finalizarDia('${diaProcesso}')">
+    ✅ Finalizar Dia
+  </button>
+` }
+</td>
 `;
 
   tbody.appendChild(linhaDia);
@@ -1278,3 +1278,34 @@ function ativarRealtimeProcessos() {
     )
     .subscribe();
 }
+
+window.reabrirDia = async function(dia) {
+  if (!confirm("Reabrir o dia " + dia + "?")) {
+    return;
+  }
+
+  const processosDoDia = processos.filter(function(p) {
+    return formatarDataLancamentoParaDia(p.dataLancamento) === dia;
+  });
+
+  const ids = processosDoDia.map(function(p) {
+    return p.id;
+  });
+
+  const { error } = await banco
+    .from("processos")
+    .update({
+      dia_finalizado: false
+    })
+    .in("id", ids);
+
+  if (error) {
+    console.error("Erro ao reabrir dia:", error);
+    alert("Erro ao reabrir dia.");
+    return;
+  }
+
+  alert("Dia reaberto com sucesso!");
+
+  await carregarProcessos();
+};
