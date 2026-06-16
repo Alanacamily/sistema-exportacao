@@ -540,3 +540,11 @@ tr.cobrado {
   box-shadow: 0 8px 20px rgba(0,0,0,0.25);
   font-weight: bold;
 }
+
+.filters select {
+  background: #0f172a;
+  color: #bfdbfe;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 12px;
+}
