@@ -39,6 +39,20 @@ function valor(id) {
   return document.getElementById(id).value;
 }
 
+function converterDataBR(dataBR) {
+  const partes = String(dataBR || "").split("/");
+
+  if (partes.length !== 3) {
+    return new Date(0);
+  }
+
+  return new Date(
+    Number(partes[2]),
+    Number(partes[1]) - 1,
+    Number(partes[0])
+  );
+}
+
 async function carregarProcessos() {
 
   mostrarLoading();
@@ -83,6 +97,14 @@ async function carregarProcessos() {
   });
 
 processos.sort(function(a, b) {
+
+  const diaA = formatarDataLancamentoParaDia(a.dataLancamento);
+  const diaB = formatarDataLancamentoParaDia(b.dataLancamento);
+
+  if (diaA !== diaB) {
+    return converterDataBR(diaB) - converterDataBR(diaA);
+  }
+
   return (a.empresa || "").localeCompare(
     b.empresa || "",
     "pt-BR",
@@ -91,7 +113,7 @@ processos.sort(function(a, b) {
 });
 
 renderizarTabela();
-
+atualizarOpcoesRelatorio();
 esconderLoading();
 }
 
@@ -303,7 +325,7 @@ function renderizarTabela() {
 
   tbody.innerHTML = "";
 
-  let ultimoDiaRenderizado = "";
+  let diasRenderizados = {};
 
   processos.forEach(function(p, index) {
     const textoBusca = `
@@ -339,8 +361,8 @@ const diaFinalizado = processosDoDia.every(function(item) {
 
 const diaAberto = diasAbertos[diaProcesso] === true;
 
-if (diaProcesso !== ultimoDiaRenderizado) {
-  ultimoDiaRenderizado = diaProcesso;
+if (!diasRenderizados[diaProcesso]) {
+  diasRenderizados[diaProcesso] = true;
 
   const linhaDia = document.createElement("tr");
 
@@ -829,13 +851,57 @@ function exportarPDF() {
     return;
   }
 
-  const processosExportar = [...processos].sort(function(a, b) {
+  const tipo = document.getElementById("tipoRelatorio").value;
+
+const valor = document.getElementById("valorRelatorioSelect").value
+  .trim()
+  .toLowerCase();
+
+let processosExportar = [...processos];
+
+if (tipo !== "todos" && valor) {
+  processosExportar = processosExportar.filter(function(p) {
+    if (tipo === "dia") {
+      return formatarDataLancamentoParaDia(p.dataLancamento)
+        .toLowerCase() === valor;
+    }
+
+    if (tipo === "empresa") {
+      return (p.empresa || "").toLowerCase().includes(valor);
+    }
+
+    if (tipo === "cnpj") {
+      return (p.cnpj || "").toLowerCase().includes(valor);
+    }
+
+    if (tipo === "fatura") {
+      return (p.fatura || "").toLowerCase().includes(valor);
+    }
+
+    if (tipo === "due") {
+      return (p.numeroDue || "").toLowerCase().includes(valor);
+    }
+
+    if (tipo === "parceiro") {
+      return (p.parceiro || "").toLowerCase().includes(valor);
+    }
+
+    return true;
+  });
+}
+
+  processosExportar.sort(function(a, b) {
     return (a.empresa || "").localeCompare(
       b.empresa || "",
       "pt-BR",
       { sensitivity: "base" }
     );
   });
+
+  if (processosExportar.length === 0) {
+    alert("Nenhum processo encontrado para esse filtro.");
+    return;
+  }
 
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF("landscape");
@@ -917,6 +983,20 @@ function converterLancamentoParaDataInput(dataLancamento) {
   const ano = partes[2];
 
   return `${ano}-${mes}-${dia}`;
+}
+
+function converterDataBR(dataBR) {
+  const partes = dataBR.split("/");
+
+  if (partes.length !== 3) {
+    return new Date(0);
+  }
+
+  return new Date(
+    partes[2],
+    partes[1] - 1,
+    partes[0]
+  );
 }
 
 function dataArquivo() {
@@ -1132,7 +1212,10 @@ document.addEventListener("keydown", function(event) {
 
     if (telaLogin && telaLogin.style.display !== "none") {
       fazerLogin();
+      return;
     }
+
+    exportarPDF();
   }
 });
 
@@ -1322,3 +1405,66 @@ window.reabrirDia = async function(dia) {
 
   await carregarProcessos();
 };
+
+function atualizarOpcoesRelatorio() {
+  const tipo = document.getElementById("tipoRelatorio").value;
+  const select = document.getElementById("valorRelatorioSelect");
+
+  select.innerHTML = '<option value="">Selecione...</option>';
+
+  let valores = [];
+
+   if (tipo === "todos") {
+   select.innerHTML = '<option value="">Todos os Processos</option>';
+   return;
+  }
+
+  if (tipo === "dia") {
+    valores = processos.map(function(p) {
+      return formatarDataLancamentoParaDia(p.dataLancamento);
+    });
+  }
+
+  if (tipo === "empresa") {
+    valores = processos.map(function(p) {
+      return p.empresa || "";
+    });
+  }
+
+  if (tipo === "cnpj") {
+    valores = processos.map(function(p) {
+      return p.cnpj || "";
+    });
+  }
+
+  if (tipo === "fatura") {
+    valores = processos.map(function(p) {
+      return p.fatura || "";
+    });
+  }
+
+  if (tipo === "due") {
+    valores = processos.map(function(p) {
+      return p.numeroDue || "";
+    });
+  }
+
+  if (tipo === "parceiro") {
+    valores = processos.map(function(p) {
+      return p.parceiro || "";
+    });
+  }
+
+  valores = [...new Set(valores.filter(Boolean))].sort(function(a, b) {
+    return a.localeCompare(b, "pt-BR", { sensitivity: "base" });
+  });
+
+  valores.forEach(function(valor) {
+    const option = document.createElement("option");
+    option.value = valor;
+    option.textContent = valor;
+    select.appendChild(option);
+  });
+}
+
+window.atualizarOpcoesRelatorio = atualizarOpcoesRelatorio;
