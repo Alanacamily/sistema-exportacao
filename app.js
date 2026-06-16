@@ -496,12 +496,28 @@ tbody.appendChild(tr);
 
   atualizarDashboard();
 }
+
   window.selecionarDiaExportacao = function(dia) {
   diaSelecionadoExportacao = dia;
+
+  const tipo = document.getElementById("tipoRelatorio");
+  const valor = document.getElementById("valorRelatorioSelect");
+
+  if (tipo) {
+    tipo.value = "dia";
+  }
+
+  atualizarOpcoesRelatorio();
+
+  if (valor) {
+    valor.value = dia;
+  }
+
   atualizarDashboard();
+
   alert("Dia selecionado para exportação: " + dia);
 };
-    
+
   window.editarProcesso = function(index) {
   const p = processos[index];
 
@@ -808,13 +824,15 @@ function dadosFiltrados() {
 
   return processos.filter(function(p) {
     const textoBusca = `
-      ${p.empresa}
-      ${p.fatura}
-      ${p.numeroDue}
-      ${p.crt}
-      ${p.numeroVeiculo}
-      ${p.mercadoria}
-    `.toLowerCase();
+    ${p.empresa || ""}
+    ${p.cnpj || ""}
+    ${p.fatura || ""}
+    ${p.numeroDue || ""}
+    ${p.crt || ""}
+    ${p.numeroVeiculo || ""}
+    ${p.mercadoria || ""}
+    ${p.parceiro || ""}
+   `.toLowerCase();
 
     const passaBusca = textoBusca.includes(busca);
     const passaData =
@@ -1240,11 +1258,6 @@ window.alternarDia = function(dia) {
   renderizarTabela();
 };
 
-window.selecionarDiaExportacao = function(dia) {
-  diaSelecionadoExportacao = dia;
-  alert("Dia selecionado para exportação: " + dia);
-};
-
 window.sair = async function() {
   await banco.auth.signOut();
 
@@ -1261,10 +1274,7 @@ document.addEventListener("keydown", function(event) {
 
     if (telaLogin && telaLogin.style.display !== "none") {
       fazerLogin();
-      return;
     }
-
-    exportarPDF();
   }
 });
 
@@ -1525,3 +1535,124 @@ function atualizarOpcoesRelatorio() {
 }
 
 window.atualizarOpcoesRelatorio = atualizarOpcoesRelatorio;
+
+function obterProcessosRelatorio() {
+  const tipo = document.getElementById("tipoRelatorio").value;
+  const valor = document.getElementById("valorRelatorioSelect").value
+    .trim()
+    .toLowerCase();
+
+  let lista = [...processos];
+
+  if (tipo !== "todos" && valor) {
+    lista = lista.filter(function(p) {
+      if (tipo === "dia") {
+        return formatarDataLancamentoParaDia(p.dataLancamento)
+          .toLowerCase() === valor;
+      }
+
+      if (tipo === "empresa") {
+        return (p.empresa || "").toLowerCase().includes(valor);
+      }
+
+      if (tipo === "cnpj") {
+        return (p.cnpj || "").toLowerCase().includes(valor);
+      }
+
+      if (tipo === "fatura") {
+        return (p.fatura || "").toLowerCase().includes(valor);
+      }
+
+      if (tipo === "due") {
+        return (p.numeroDue || "").toLowerCase().includes(valor);
+      }
+
+      if (tipo === "parceiro") {
+        return (p.parceiro || "").toLowerCase().includes(valor);
+      }
+
+      return true;
+    });
+  }
+
+  lista.sort(function(a, b) {
+    const dataA = converterDataBR(formatarDataLancamentoParaDia(a.dataLancamento));
+    const dataB = converterDataBR(formatarDataLancamentoParaDia(b.dataLancamento));
+
+    if (dataB - dataA !== 0) {
+      return dataB - dataA;
+    }
+
+    return (a.empresa || "").localeCompare(
+      b.empresa || "",
+      "pt-BR",
+      { sensitivity: "base" }
+    );
+  });
+
+  return lista;
+}
+
+window.mostrarPreviaRelatorio = function() {
+  const lista = obterProcessosRelatorio();
+
+  if (lista.length === 0) {
+    alert("Nenhum processo encontrado para esse filtro.");
+    return;
+  }
+
+  const tbody = document.getElementById("tabelaProcessos");
+  tbody.innerHTML = "";
+
+  let ultimoDiaRenderizado = "";
+
+  lista.forEach(function(p) {
+    const diaProcesso = formatarDataLancamentoParaDia(p.dataLancamento);
+
+    const processosDoDia = lista.filter(function(item) {
+      return formatarDataLancamentoParaDia(item.dataLancamento) === diaProcesso;
+    });
+
+    if (diaProcesso !== ultimoDiaRenderizado) {
+      ultimoDiaRenderizado = diaProcesso;
+
+      const linhaDia = document.createElement("tr");
+
+      linhaDia.innerHTML = `
+        <td colspan="20" class="linha-dia">
+          📄 Prévia do relatório — ${diaProcesso}
+          (${processosDoDia.length} processos)
+        </td>
+      `;
+
+      tbody.appendChild(linhaDia);
+    }
+
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${p.empresa || ""}</td>
+      <td>${p.cnpj || ""}</td>
+      <td>${p.quantidade || ""}</td>
+      <td>${formatarData(p.dataAverbacao)}</td>
+      <td>${p.crt || ""}</td>
+      <td>${p.mercadoria || ""}</td>
+      <td>${p.fatura || ""}</td>
+      <td>${p.observacao || ""}</td>
+      <td>${p.numeroVeiculo || ""}</td>
+      <td>${p.transporte || ""}</td>
+      <td>${p.pesoLiquido || ""}</td>
+      <td>${p.parceiro || "-"}</td>
+      <td>${p.numeroDue || "-"}</td>
+      <td>${p.responsavelDue === "Exacta" ? "Exacta" : "-"}</td>
+      <td>${p.responsavelDue === "Parceiro" ? "Parceiro" : "-"}</td>
+      <td>${p.responsavelCo === "Exacta" ? "Exacta" : "-"}</td>
+      <td>${p.responsavelCo === "Parceiro" ? "Parceiro" : "-"}</td>
+      <td>${p.lpco || "-"}</td>
+      <td>${p.financeiroCobrou ? "Cobrado" : "Pendente"}</td>
+      <td>${p.dataLancamento || ""}</td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+};
