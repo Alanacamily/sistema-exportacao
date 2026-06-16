@@ -548,3 +548,134 @@ tr.cobrado {
   border-radius: 8px;
   padding: 12px;
 }
+
+.filters {
+  display: grid;
+  grid-template-columns: 2fr 1.3fr 1fr 1fr auto auto auto;
+  gap: 12px;
+  align-items: end;
+  background: #1e293b;
+  border-radius: 10px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.filters input,
+.filters select {
+  background: #0f172a;
+  color: #dbeafe;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 14px;
+  outline: none;
+}
+
+.filters input:focus,
+.filters select:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.18);
+}
+
+.filters button {
+  border: none;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #2563eb;
+  color: white;
+}
+
+.filters button:hover {
+  filter: brightness(1.1);
+}
+
+.table-box {
+  background: #1e293b;
+  border-radius: 10px;
+  padding: 18px;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1500px;
+}
+
+thead th {
+  background: #020617;
+  color: #38bdf8;
+  font-size: 13px;
+  text-align: left;
+  padding: 14px 12px;
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #334155;
+  color: #f8fafc;
+  font-size: 13px;
+}
+
+.linha-dia {
+  background: #162033;
+  color: #ffffff;
+  font-weight: 800;
+  padding: 14px !important;
+}
+
+.linha-dia button {
+  margin-left: 8px;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-finalizar-dia {
+  background: #f8fafc;
+  color: #020617;
+}
+
+.btn-financeiro,
+.btn-financeiro-ok {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-financeiro {
+  background: #64748b;
+  color: white;
+}
+
+.btn-financeiro-ok {
+  background: #16a34a;
+  color: white;
+}
+
+.btn-edit {
+  background: #f59e0b;
+  color: #111827;
+}
+
+.btn-delete {
+  background: #dc2626;
+  color: white;
+}
+
+.btn-edit,
+.btn-delete {
+  border: none;
+  border-radius: 8px;
+  padding: 9px 12px;
+  margin: 3px;
+  font-weight: 700;
+  cursor: pointer;
+}
