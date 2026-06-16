@@ -96,26 +96,25 @@ async function carregarProcessos() {
     };
   });
 
-processos.sort(function(a, b) {
+   processos.sort(function(a, b) {
+   const dataA = converterDataBR(formatarDataLancamentoParaDia(a.dataLancamento));
+   const dataB = converterDataBR(formatarDataLancamentoParaDia(b.dataLancamento));
 
-  const diaA = formatarDataLancamentoParaDia(a.dataLancamento);
-  const diaB = formatarDataLancamentoParaDia(b.dataLancamento);
+   if (dataB - dataA !== 0) {
+    return dataB - dataA;
+   }
 
-  if (diaA !== diaB) {
-    return converterDataBR(diaB) - converterDataBR(diaA);
-  }
-
-  return (a.empresa || "").localeCompare(
+   return (a.empresa || "").localeCompare(
     b.empresa || "",
     "pt-BR",
     { sensitivity: "base" }
-  );
-});
+   );
+   });
 
-renderizarTabela();
-atualizarOpcoesRelatorio();
-esconderLoading();
-}
+ renderizarTabela();
+ atualizarOpcoesRelatorio();
+ esconderLoading();
+ }
 
 window.salvarProcesso = async function () {
   const empresa = valor("empresa").trim();
@@ -325,7 +324,7 @@ function renderizarTabela() {
 
   tbody.innerHTML = "";
 
-  let diasRenderizados = {};
+  let ultimoDiaRenderizado = "";
 
   processos.forEach(function(p, index) {
     const textoBusca = `
@@ -352,7 +351,29 @@ function renderizarTabela() {
     const diaProcesso = formatarDataLancamentoParaDia(p.dataLancamento);
 
 const processosDoDia = processos.filter(function(item) {
-  return formatarDataLancamentoParaDia(item.dataLancamento) === diaProcesso;
+  const textoBuscaDia = `
+    ${item.empresa || ""}
+    ${item.cnpj || ""}
+    ${item.fatura || ""}
+    ${item.numeroDue || ""}
+    ${item.crt || ""}
+    ${item.numeroVeiculo || ""}
+    ${item.mercadoria || ""}
+    ${item.parceiro || ""}
+  `.toLowerCase();
+
+  const passaBuscaDia = textoBuscaDia.includes(busca);
+
+  const passaDataDia =
+    !filtroData ||
+    item.dataAverbacao === filtroData ||
+    converterLancamentoParaDataInput(item.dataLancamento) === filtroData;
+
+  return (
+    formatarDataLancamentoParaDia(item.dataLancamento) === diaProcesso &&
+    passaBuscaDia &&
+    passaDataDia
+  );
 });
 
 const diaFinalizado = processosDoDia.every(function(item) {
@@ -361,8 +382,8 @@ const diaFinalizado = processosDoDia.every(function(item) {
 
 const diaAberto = diasAbertos[diaProcesso] === true;
 
-if (!diasRenderizados[diaProcesso]) {
-  diasRenderizados[diaProcesso] = true;
+if (diaProcesso !== ultimoDiaRenderizado) {
+  ultimoDiaRenderizado = diaProcesso;
 
   const linhaDia = document.createElement("tr");
 
@@ -395,7 +416,7 @@ linhaDia.innerHTML = `
   tbody.appendChild(linhaDia);
 }
 
-if (diaFinalizado && !diaAberto) {
+if (diaFinalizado && !diaAberto && !busca && !filtroData) {
   return;
 }
 
@@ -853,44 +874,51 @@ function exportarPDF() {
 
   const tipo = document.getElementById("tipoRelatorio").value;
 
-const valor = document.getElementById("valorRelatorioSelect").value
-  .trim()
-  .toLowerCase();
+  const valor = document.getElementById("valorRelatorioSelect").value
+    .trim()
+    .toLowerCase();
 
-let processosExportar = [...processos];
+  let processosExportar = [...processos];
 
-if (tipo !== "todos" && valor) {
-  processosExportar = processosExportar.filter(function(p) {
-    if (tipo === "dia") {
-      return formatarDataLancamentoParaDia(p.dataLancamento)
-        .toLowerCase() === valor;
-    }
+  if (tipo !== "todos" && valor) {
+    processosExportar = processosExportar.filter(function(p) {
+      if (tipo === "dia") {
+        return formatarDataLancamentoParaDia(p.dataLancamento)
+          .toLowerCase() === valor;
+      }
 
-    if (tipo === "empresa") {
-      return (p.empresa || "").toLowerCase().includes(valor);
-    }
+      if (tipo === "empresa") {
+        return (p.empresa || "").toLowerCase().includes(valor);
+      }
 
-    if (tipo === "cnpj") {
-      return (p.cnpj || "").toLowerCase().includes(valor);
-    }
+      if (tipo === "cnpj") {
+        return (p.cnpj || "").toLowerCase().includes(valor);
+      }
 
-    if (tipo === "fatura") {
-      return (p.fatura || "").toLowerCase().includes(valor);
-    }
+      if (tipo === "fatura") {
+        return (p.fatura || "").toLowerCase().includes(valor);
+      }
 
-    if (tipo === "due") {
-      return (p.numeroDue || "").toLowerCase().includes(valor);
-    }
+      if (tipo === "due") {
+        return (p.numeroDue || "").toLowerCase().includes(valor);
+      }
 
-    if (tipo === "parceiro") {
-      return (p.parceiro || "").toLowerCase().includes(valor);
-    }
+      if (tipo === "parceiro") {
+        return (p.parceiro || "").toLowerCase().includes(valor);
+      }
 
-    return true;
-  });
-}
+      return true;
+    });
+  }
 
   processosExportar.sort(function(a, b) {
+    const dataA = converterDataBR(formatarDataLancamentoParaDia(a.dataLancamento));
+    const dataB = converterDataBR(formatarDataLancamentoParaDia(b.dataLancamento));
+
+    if (dataB - dataA !== 0) {
+      return dataB - dataA;
+    }
+
     return (a.empresa || "").localeCompare(
       b.empresa || "",
       "pt-BR",
@@ -913,40 +941,61 @@ if (tipo !== "todos" && valor) {
   pdf.text(`Data de emissão: ${new Date().toLocaleString("pt-BR")}`, 14, 23);
   pdf.text(`Quantidade de registros: ${processosExportar.length}`, 14, 29);
 
-  const corpo = processosExportar.map(function(p) {
-    return [
-      p.empresa || "",
-      p.cnpj || "",
-      p.fatura || "",
-      p.numeroDue || "",
-      p.parceiro || "",
-      p.aduanaIntegrada ? "ADUANA INTEGRADA" : "NORMAL",
-      p.fracionado ? "SIM" : "NÃO",
-      p.financeiroCobrou ? "COBRADO" : "PENDENTE",
-      p.pesoLiquido || ""
-    ];
-  });
+  let yAtual = 36;
 
-  pdf.autoTable({
-    startY: 36,
-    head: [[
-      "Empresa",
-      "CNPJ",
-      "Fatura",
-      "DUE",
-      "Parceiro",
-      "Tipo",
-      "Fracionado",
-      "Financeiro",
-      "Peso"
-    ]],
-    body: corpo,
-    styles: {
-      fontSize: 7
-    },
-    headStyles: {
-      fillColor: [30, 41, 59]
-    }
+  const dias = [...new Set(
+    processosExportar.map(function(p) {
+      return formatarDataLancamentoParaDia(p.dataLancamento);
+    })
+  )];
+
+  dias.forEach(function(dia) {
+    const processosDoDia = processosExportar.filter(function(p) {
+      return formatarDataLancamentoParaDia(p.dataLancamento) === dia;
+    });
+
+    pdf.setFontSize(11);
+    pdf.text("Data de lançamento: " + dia, 14, yAtual);
+
+    yAtual += 5;
+
+    const corpoDia = processosDoDia.map(function(p) {
+      return [
+        p.empresa || "",
+        p.cnpj || "",
+        p.fatura || "",
+        p.numeroDue || "",
+        p.parceiro || "",
+        p.aduanaIntegrada ? "ADUANA INTEGRADA" : "NORMAL",
+        p.fracionado ? "SIM" : "NÃO",
+        p.financeiroCobrou ? "COBRADO" : "PENDENTE",
+        p.pesoLiquido || ""
+      ];
+    });
+
+    pdf.autoTable({
+      startY: yAtual,
+      head: [[
+        "Empresa",
+        "CNPJ",
+        "Fatura",
+        "DUE",
+        "Parceiro",
+        "Tipo",
+        "Fracionado",
+        "Financeiro",
+        "Peso"
+      ]],
+      body: corpoDia,
+      styles: {
+        fontSize: 7
+      },
+      headStyles: {
+        fillColor: [30, 41, 59]
+      }
+    });
+
+    yAtual = pdf.lastAutoTable.finalY + 10;
   });
 
   pdf.save(`relatorio_geral_processos_${dataArquivo()}.pdf`);
@@ -1407,56 +1456,64 @@ window.reabrirDia = async function(dia) {
 };
 
 function atualizarOpcoesRelatorio() {
-  const tipo = document.getElementById("tipoRelatorio").value;
+  const tipo = document.getElementById("tipoRelatorio");
   const select = document.getElementById("valorRelatorioSelect");
+
+  if (!tipo || !select) {
+    return;
+  }
 
   select.innerHTML = '<option value="">Selecione...</option>';
 
   let valores = [];
 
-   if (tipo === "todos") {
-   select.innerHTML = '<option value="">Todos os Processos</option>';
-   return;
+  if (tipo.value === "todos") {
+    select.innerHTML = '<option value="">Todos os Processos</option>';
+    return;
   }
 
-  if (tipo === "dia") {
+  if (tipo.value === "dia") {
     valores = processos.map(function(p) {
       return formatarDataLancamentoParaDia(p.dataLancamento);
     });
   }
 
-  if (tipo === "empresa") {
+  if (tipo.value === "empresa") {
     valores = processos.map(function(p) {
       return p.empresa || "";
     });
   }
 
-  if (tipo === "cnpj") {
+  if (tipo.value === "cnpj") {
     valores = processos.map(function(p) {
       return p.cnpj || "";
     });
   }
 
-  if (tipo === "fatura") {
+  if (tipo.value === "fatura") {
     valores = processos.map(function(p) {
       return p.fatura || "";
     });
   }
 
-  if (tipo === "due") {
+  if (tipo.value === "due") {
     valores = processos.map(function(p) {
       return p.numeroDue || "";
     });
   }
 
-  if (tipo === "parceiro") {
+  if (tipo.value === "parceiro") {
     valores = processos.map(function(p) {
       return p.parceiro || "";
     });
   }
 
   valores = [...new Set(valores.filter(Boolean))].sort(function(a, b) {
-    return a.localeCompare(b, "pt-BR", { sensitivity: "base" });
+    return String(a).localeCompare(
+      String(b),
+      "pt-BR",
+      { sensitivity: "base" }
+    );
   });
 
   valores.forEach(function(valor) {
