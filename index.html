@@ -136,18 +136,43 @@
       </button>
     </section>
 
-    <section class="filters">
-      <input
-        id="busca"
-        placeholder="Buscar por empresa, CNPJ, fatura, DUE, CRT ou veículo"
-        oninput="renderizarTabela()"
-      />
+   <section class="filters">
 
       <input
-        id="filtroData"
-        type="date"
-        onchange="renderizarTabela()"
+     id="busca"
+     placeholder="Buscar por empresa, CNPJ, fatura, DUE, CRT ou veículo"
+     oninput="renderizarTabela()"
       />
+
+     <input
+     id="filtroData"
+     type="date"
+     onchange="renderizarTabela()"
+     />
+
+   <select id="tipoRelatorio" onchange="atualizarOpcoesRelatorio()">
+   <option value="todos">Todos os Processos</option>
+   <option value="dia">Dia</option>
+   <option value="empresa">Empresa</option>
+   <option value="cnpj">CNPJ</option>
+   <option value="fatura">Fatura</option>
+   <option value="due">DU-E</option>
+   <option value="parceiro">Parceiro</option>
+   </select>
+
+   <select id="valorRelatorioSelect">
+   <option value="">Todos</option>
+   </select>
+
+     <button onclick="exportarExcel()">
+     📊 Excel
+     </button>
+
+      <button onclick="exportarPDF()">
+     📄 PDF
+     </button>
+
+    </section>
 
       <button onclick="exportarExcel()">
         📊 Excel
