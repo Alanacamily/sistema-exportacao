@@ -25,6 +25,10 @@
       <p>Controle de Processos de Exportação</p>
     </div>
 
+    <button onclick="voltarEscolhaRelatorio()">
+   🔁 Trocar Relatório
+   </button>
+
    <button id="btnAuditoria" class="audit-btn" onclick="abrirAuditoria()" style="display:none;">
    🛡️ Auditoria
    </button>
@@ -131,49 +135,54 @@
 
    <section class="filters">
 
-      <input
-     id="busca"
-     placeholder="Buscar por empresa, CNPJ, fatura, DUE, CRT ou veículo"
-     oninput="renderizarTabela()"
-      />
+  <input
+    id="busca"
+    placeholder="Buscar por empresa, CNPJ, fatura, DUE, CRT ou veículo"
+    oninput="renderizarTabela()"
+  />
 
-     <input
-     id="filtroData"
-     type="date"
-     onchange="renderizarTabela()"
-     />
+  <input
+    id="filtroData"
+    type="date"
+    onchange="renderizarTabela()"
+  />
 
-   <select id="tipoRelatorio" onchange="atualizarOpcoesRelatorio()">
-   <option value="todos">Todos os Processos</option>
-   <option value="dia">Dia</option>
-   <option value="empresa">Empresa</option>
-   <option value="cnpj">CNPJ</option>
-   <option value="fatura">Fatura</option>
-   <option value="due">DU-E</option>
-   <option value="parceiro">Parceiro</option>
-   </select>
+  <select id="tipoRelatorio" onchange="atualizarOpcoesRelatorio()">
+    <option value="todos">Todos os Processos</option>
+    <option value="dia">Dia</option>
+    <option value="empresa">Empresa</option>
+    <option value="cnpj">CNPJ</option>
+    <option value="fatura">Fatura</option>
+    <option value="due">DU-E</option>
+    <option value="parceiro">Parceiro</option>
+  </select>
 
-   <select id="valorRelatorioSelect">
-   <option value="">Todos</option>
-   </select>
+  <select id="valorRelatorioSelect">
+    <option value="">Todos os Processos</option>
+  </select>
+
+  <button onclick="mostrarPreviaRelatorio()">👁️ Prévia</button>
+  <button onclick="carregarProcessos()">🔄 Ver Tudo</button>
+  <button onclick="exportarExcel()">📊 Excel</button>
+  <button onclick="exportarPDF()">📄 PDF</button>
+
+</section>
 
    <button onclick="mostrarPreviaRelatorio()">
-   👁️ Prévia
-   </button>
+  👁️ Prévia
+</button>
 
-   <button onclick="renderizarTabela()">
-   🔄 Ver Tudo
-   </button>
+<button onclick="carregarProcessos()">
+  🔄 Ver Tudo
+</button>
 
+<button onclick="exportarExcel()">
+  📊 Excel
+</button>
 
-      <button onclick="exportarExcel()">
-        📊 Excel
-      </button>
-
-      <button onclick="exportarPDF()">
-        📄 PDF
-      </button>
-    </section>
+<button onclick="exportarPDF()">
+  📄 PDF
+</button>
 
     <section class="table-box">
       <table>
@@ -192,13 +201,11 @@
             <th>Peso Líquido</th>
             <th>Parceiro</th>
             <th>DU-E</th>
-            <th>DU-E Exacta</th>
-            <th>DU-E Parceiro</th>
-            <th>DU-E Exportador</th>
-            <th>C.O Exacta</th>
-            <th>C.O Parceiro</th>
-            <th>C.O Exportador</th>
+            <th>Responsável DU-E</th>
+            <th>Responsável C.O</th>
             <th>LPCO</th>
+            <th class="coluna-fora">País</th>
+           <th class="coluna-fora">Desembaraço</th>
             <th>Financeiro</th>
             <th>Data</th>
             <th>Ações</th>
@@ -297,3 +304,4 @@
 <script src="app.js"></script>
 
 </html>
+
