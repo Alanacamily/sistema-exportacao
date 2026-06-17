@@ -277,7 +277,7 @@ function renderizarBotaoFinanceiro(p, index) {
     <button 
       class="${p.financeiroCobrou ? "btn-financeiro-ok" : "btn-financeiro"}"
       onclick="alternarFinanceiro(${index})">
-      ${p.financeiroCobrou ? "🟢 Cobrado" : "⚪ Cobrar"}
+      ${p.financeiroCobrou ? "🟢 Lançado" : "⚪ Lançar"}
     </button>
   `;
 }
@@ -858,20 +858,30 @@ function exportarExcel() {
     );
   });
 
-  const dados = processosExportar.map(function(p) {
-    return {
-      Empresa: p.empresa || "",
-      CNPJ: p.cnpj || "",
-      Fatura: p.fatura || "",
-      DUE: p.numeroDue || "",
-      Parceiro: p.parceiro || "",
-      Tipo: p.aduanaIntegrada ? "ADUANA INTEGRADA" : "NORMAL",
-      Fracionado: p.fracionado ? "SIM" : "NÃO",
-      Financeiro: p.financeiroCobrou ? "COBRADO" : "PENDENTE",
-      Peso: p.pesoLiquido || ""
-  
-    };
-  });
+   const corpo = processosExportar.map(function(p) {
+   return [
+    p.empresa || "",
+    p.cnpj || "",
+    p.quantidade || "",
+    formatarData(p.dataAverbacao),
+    p.crt || "",
+    p.mercadoria || "",
+    p.fatura || "",
+    p.observacao || "",
+    p.numeroVeiculo || "",
+    p.transporte || "",
+    p.pesoLiquido || "",
+    p.parceiro || "",
+    p.numeroDue || "",
+    p.responsavelDue === "Exacta" ? "Exacta" : "-",
+    p.responsavelDue === "Parceiro" ? "Parceiro" : "-",
+    p.responsavelCo === "Exacta" ? "Exacta" : "-",
+    p.responsavelCo === "Parceiro" ? "Parceiro" : "-",
+    p.lpco || "-",
+    p.financeiroCobrou ? "COBRADO" : "PENDENTE",
+    formatarDataLancamentoParaDia(p.dataLancamento)
+   ];
+   });
 
   const planilha = XLSX.utils.json_to_sheet(dados);
   const arquivo = XLSX.utils.book_new();
@@ -891,7 +901,6 @@ function exportarPDF() {
   }
 
   const tipo = document.getElementById("tipoRelatorio").value;
-
   const valor = document.getElementById("valorRelatorioSelect").value
     .trim()
     .toLowerCase();
@@ -901,8 +910,7 @@ function exportarPDF() {
   if (tipo !== "todos" && valor) {
     processosExportar = processosExportar.filter(function(p) {
       if (tipo === "dia") {
-        return formatarDataLancamentoParaDia(p.dataLancamento)
-          .toLowerCase() === valor;
+        return formatarDataLancamentoParaDia(p.dataLancamento).toLowerCase() === valor;
       }
 
       if (tipo === "empresa") {
@@ -950,14 +958,14 @@ function exportarPDF() {
   }
 
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF("landscape");
+  const pdf = new jsPDF("landscape", "mm", "a3");
 
   pdf.setFontSize(16);
   pdf.text("Relatório Geral de Processos de Exportação", 14, 15);
 
-  pdf.setFontSize(10);
-  pdf.text(`Data de emissão: ${new Date().toLocaleString("pt-BR")}`, 14, 23);
-  pdf.text(`Quantidade de registros: ${processosExportar.length}`, 14, 29);
+  pdf.setFontSize(9);
+  pdf.text(`Data de emissão: ${new Date().toLocaleString("pt-BR")}`, 14, 22);
+  pdf.text(`Quantidade de registros: ${processosExportar.length}`, 14, 28);
 
   let yAtual = 36;
 
@@ -974,20 +982,30 @@ function exportarPDF() {
 
     pdf.setFontSize(11);
     pdf.text("Data de lançamento: " + dia, 14, yAtual);
-
     yAtual += 5;
 
     const corpoDia = processosDoDia.map(function(p) {
       return [
         p.empresa || "",
         p.cnpj || "",
+        p.quantidade || "",
+        formatarData(p.dataAverbacao),
+        p.crt || "",
+        p.mercadoria || "",
         p.fatura || "",
-        p.numeroDue || "",
+        p.observacao || "",
+        p.numeroVeiculo || "",
+        p.transporte || "",
+        p.pesoLiquido || "",
         p.parceiro || "",
-        p.aduanaIntegrada ? "ADUANA INTEGRADA" : "NORMAL",
-        p.fracionado ? "SIM" : "NÃO",
+        p.numeroDue || "",
+        p.responsavelDue === "Exacta" ? "Exacta" : "-",
+        p.responsavelDue === "Parceiro" ? "Parceiro" : "-",
+        p.responsavelCo === "Exacta" ? "Exacta" : "-",
+        p.responsavelCo === "Parceiro" ? "Parceiro" : "-",
+        p.lpco || "-",
         p.financeiroCobrou ? "COBRADO" : "PENDENTE",
-        p.pesoLiquido || ""
+        formatarDataLancamentoParaDia(p.dataLancamento)
       ];
     });
 
@@ -996,24 +1014,44 @@ function exportarPDF() {
       head: [[
         "Empresa",
         "CNPJ",
+        "Qtd",
+        "Liberado",
+        "CRT",
+        "Mercadoria",
         "Fatura",
-        "DUE",
+        "Obs.",
+        "Veículo",
+        "Transp.",
+        "Peso",
         "Parceiro",
-        "Tipo",
-        "Fracionado",
-        "Financeiro",
-        "Peso"
+        "DU-E",
+        "DU-E Ex.",
+        "DU-E Parc.",
+        "C.O Ex.",
+        "C.O Parc.",
+        "LPCO",
+        "Fin.",
+        "Data"
       ]],
       body: corpoDia,
       styles: {
-        fontSize: 7
+        fontSize: 5,
+        cellPadding: 1,
+        overflow: "linebreak"
       },
       headStyles: {
-        fillColor: [30, 41, 59]
-      }
+        fillColor: [30, 41, 59],
+        textColor: 255,
+        fontSize: 5
+      },
+      margin: {
+        left: 8,
+        right: 8
+      },
+      tableWidth: "auto"
     });
 
-    yAtual = pdf.lastAutoTable.finalY + 10;
+    yAtual = pdf.lastAutoTable.finalY + 8;
   });
 
   pdf.save(`relatorio_geral_processos_${dataArquivo()}.pdf`);
@@ -1186,6 +1224,12 @@ async function carregarNivelUsuario(email) {
 function aplicarPermissoes() {
   console.log("Aplicando permissões para:", nivelUsuario);
 
+  const btnAuditoria = document.getElementById("btnAuditoria");
+
+ if (btnAuditoria) {
+  btnAuditoria.style.display = nivelUsuario === "admin" ? "inline-block" : "none";
+ }
+
   const btnSalvar = document.getElementById("btnSalvar");
 
   if (!btnSalvar) {
@@ -1314,9 +1358,7 @@ async function criarBackupAutomatico() {
 
     await banco
       .from("backups")
-      .update({
-        total_processos: processosHoje.length
-      })
+      .update({ total_processos: processosHoje.length })
       .eq("id", backupId);
 
     await banco
@@ -1326,13 +1368,11 @@ async function criarBackupAutomatico() {
   } else {
     const { data: backupCriado, error: erroBackup } = await banco
       .from("backups")
-      .insert([
-        {
-          data_backup: hojeBanco,
-          total_processos: processosHoje.length,
-          dados_json: null
-        }
-      ])
+      .insert([{
+        data_backup: hojeBanco,
+        total_processos: processosHoje.length,
+        dados_json: null
+      }])
       .select("id")
       .single();
 
@@ -1489,170 +1529,55 @@ function atualizarOpcoesRelatorio() {
   }
 
   if (tipo.value === "empresa") {
-    valores = processos.map(function(p) {
-      return p.empresa || "";
-    });
-  }
-
-  if (tipo.value === "cnpj") {
-    valores = processos.map(function(p) {
-      return p.cnpj || "";
-    });
-  }
-
-  if (tipo.value === "fatura") {
-    valores = processos.map(function(p) {
-      return p.fatura || "";
-    });
-  }
-
-  if (tipo.value === "due") {
-    valores = processos.map(function(p) {
-      return p.numeroDue || "";
-    });
-  }
-
-  if (tipo.value === "parceiro") {
-    valores = processos.map(function(p) {
-      return p.parceiro || "";
-    });
-  }
-
-  valores = [...new Set(valores.filter(Boolean))].sort(function(a, b) {
-    return String(a).localeCompare(
-      String(b),
-      "pt-BR",
-      { sensitivity: "base" }
-    );
+  valores = processos.map(function(p) {
+    return p.empresa || "";
   });
+}
 
-  valores.forEach(function(valor) {
-    const option = document.createElement("option");
-    option.value = valor;
-    option.textContent = valor;
-    select.appendChild(option);
+if (tipo.value === "cnpj") {
+  valores = processos.map(function(p) {
+    return p.cnpj || "";
   });
+}
+
+if (tipo.value === "fatura") {
+  valores = processos.map(function(p) {
+    return p.fatura || "";
+  });
+}
+
+if (tipo.value === "due") {
+  valores = processos.map(function(p) {
+    return p.numeroDue || "";
+  });
+}
+
+if (tipo.value === "parceiro") {
+  valores = processos.map(function(p) {
+    return p.parceiro || "";
+  });
+}
+
+valores = [...new Set(valores.filter(Boolean))].sort(function(a, b) {
+  return String(a).localeCompare(
+    String(b),
+    "pt-BR",
+    { sensitivity: "base" }
+  );
+});
+
+valores.forEach(function(valor) {
+  const option = document.createElement("option");
+
+  option.value = valor;
+  option.textContent = valor;
+
+  select.appendChild(option);
+});
 }
 
 window.atualizarOpcoesRelatorio = atualizarOpcoesRelatorio;
 
-function obterProcessosRelatorio() {
-  const tipo = document.getElementById("tipoRelatorio").value;
-  const valor = document.getElementById("valorRelatorioSelect").value
-    .trim()
-    .toLowerCase();
-
-  let lista = [...processos];
-
-  if (tipo !== "todos" && valor) {
-    lista = lista.filter(function(p) {
-      if (tipo === "dia") {
-        return formatarDataLancamentoParaDia(p.dataLancamento)
-          .toLowerCase() === valor;
-      }
-
-      if (tipo === "empresa") {
-        return (p.empresa || "").toLowerCase().includes(valor);
-      }
-
-      if (tipo === "cnpj") {
-        return (p.cnpj || "").toLowerCase().includes(valor);
-      }
-
-      if (tipo === "fatura") {
-        return (p.fatura || "").toLowerCase().includes(valor);
-      }
-
-      if (tipo === "due") {
-        return (p.numeroDue || "").toLowerCase().includes(valor);
-      }
-
-      if (tipo === "parceiro") {
-        return (p.parceiro || "").toLowerCase().includes(valor);
-      }
-
-      return true;
-    });
-  }
-
-  lista.sort(function(a, b) {
-    const dataA = converterDataBR(formatarDataLancamentoParaDia(a.dataLancamento));
-    const dataB = converterDataBR(formatarDataLancamentoParaDia(b.dataLancamento));
-
-    if (dataB - dataA !== 0) {
-      return dataB - dataA;
-    }
-
-    return (a.empresa || "").localeCompare(
-      b.empresa || "",
-      "pt-BR",
-      { sensitivity: "base" }
-    );
-  });
-
-  return lista;
-}
-
-window.mostrarPreviaRelatorio = function() {
-  const lista = obterProcessosRelatorio();
-
-  if (lista.length === 0) {
-    alert("Nenhum processo encontrado para esse filtro.");
-    return;
-  }
-
-  const tbody = document.getElementById("tabelaProcessos");
-  tbody.innerHTML = "";
-
-  let ultimoDiaRenderizado = "";
-
-  lista.forEach(function(p) {
-    const diaProcesso = formatarDataLancamentoParaDia(p.dataLancamento);
-
-    const processosDoDia = lista.filter(function(item) {
-      return formatarDataLancamentoParaDia(item.dataLancamento) === diaProcesso;
-    });
-
-    if (diaProcesso !== ultimoDiaRenderizado) {
-      ultimoDiaRenderizado = diaProcesso;
-
-      const linhaDia = document.createElement("tr");
-
-      linhaDia.innerHTML = `
-        <td colspan="20" class="linha-dia">
-          📄 Prévia do relatório — ${diaProcesso}
-          (${processosDoDia.length} processos)
-        </td>
-      `;
-
-      tbody.appendChild(linhaDia);
-    }
-
-    const tr = document.createElement("tr");
-
-    tr.innerHTML = `
-      <td>${p.empresa || ""}</td>
-      <td>${p.cnpj || ""}</td>
-      <td>${p.quantidade || ""}</td>
-      <td>${formatarData(p.dataAverbacao)}</td>
-      <td>${p.crt || ""}</td>
-      <td>${p.mercadoria || ""}</td>
-      <td>${p.fatura || ""}</td>
-      <td>${p.observacao || ""}</td>
-      <td>${p.numeroVeiculo || ""}</td>
-      <td>${p.transporte || ""}</td>
-      <td>${p.pesoLiquido || ""}</td>
-      <td>${p.parceiro || "-"}</td>
-      <td>${p.numeroDue || "-"}</td>
-      <td>${p.responsavelDue === "Exacta" ? "Exacta" : "-"}</td>
-      <td>${p.responsavelDue === "Parceiro" ? "Parceiro" : "-"}</td>
-      <td>${p.responsavelCo === "Exacta" ? "Exacta" : "-"}</td>
-      <td>${p.responsavelCo === "Parceiro" ? "Parceiro" : "-"}</td>
-      <td>${p.lpco || "-"}</td>
-      <td>${p.financeiroCobrou ? "Cobrado" : "Pendente"}</td>
-      <td>${p.dataLancamento || ""}</td>
-    `;
-
-    tbody.appendChild(tr);
-  });
+window.fecharAuditoria = function() {
+  document.getElementById("modalAuditoria").style.display = "none";
 };
