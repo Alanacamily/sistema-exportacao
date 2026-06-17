@@ -76,7 +76,6 @@ const { data, error } = await consulta;
       empresa: p.empresa || "",
       cnpj: p.cnpj || "",
       quantidade: p.quantidade || "",
-      dataAverbacao: p.data_averbacao || "",
       crt: p.crt || "",
       mercadoria: p.mercadoria || "",
       fatura: p.fatura || "",
@@ -334,7 +333,7 @@ function renderizarTabela() {
 
   let ultimoDiaRenderizado = "";
 
-  processos.forEach(function(p, index) {
+   processos.forEach(function(p, index) {
     const textoBusca = `
       ${p.empresa || ""}
       ${p.cnpj || ""}
@@ -344,7 +343,6 @@ function renderizarTabela() {
       ${p.numeroVeiculo || ""}
       ${p.mercadoria || ""}
     `.toLowerCase();
-
     const passaBusca = textoBusca.includes(busca);
 
     const passaData =
@@ -475,11 +473,11 @@ if (p.aduanaIntegrada) {
     <td>${p.pesoLiquido || ""}</td>
     <td>${p.parceiro || "-"}</td>
     <td>${p.numeroDue || "-"}</td>
-    <td>${p.responsavelDue === "Exacta" ? "Exacta" : "-"}</td>
-    <td>${p.responsavelDue === "Parceiro" ? "Parceiro" : "-"}</td>
-    <td>${p.responsavelCo === "Exacta" ? "Exacta" : "-"}</td>
-    <td>${p.responsavelCo === "Parceiro" ? "Parceiro" : "-"}</td>
+    <td>${p.responsavelDue || "-"}</td>
+    <td>${p.responsavelCo || "-"}</td>
     <td>${p.lpco || "-"}</td>
+    <td class="coluna-fora">${p.pais || "-"}</td>
+    <td class="coluna-fora">${p.desembaraco || "-"}</td>
     <td>${renderizarBotaoFinanceiro(p, index)}</td>
     <td>${p.dataLancamento || ""}</td>
     <td>${renderizarBotoesAcao(index)}</td>
@@ -870,40 +868,35 @@ function exportarExcel() {
     );
   });
 
-   const corpo = processosExportar.map(function(p) {
-   return [
-    p.empresa || "",
-    p.cnpj || "",
-    p.quantidade || "",
-    formatarData(p.dataAverbacao),
-    p.crt || "",
-    p.mercadoria || "",
-    p.fatura || "",
-    p.observacao || "",
-    p.numeroVeiculo || "",
-    p.transporte || "",
-    p.pesoLiquido || "",
-    p.parceiro || "",
-    p.numeroDue || "",
-    p.responsavelDue === "Exacta" ? "Exacta" : "-",
-    p.responsavelDue === "Parceiro" ? "Parceiro" : "-",
-    p.responsavelCo === "Exacta" ? "Exacta" : "-",
-    p.responsavelCo === "Parceiro" ? "Parceiro" : "-",
-    p.lpco || "-",
-    p.financeiroCobrou ? "COBRADO" : "PENDENTE",
-    formatarDataLancamentoParaDia(p.dataLancamento)
-   ];
-   });
+   const dados = processosExportar.map(function(p) {
+  return {
+    Empresa: p.empresa || "",
+    CNPJ: p.cnpj || "",
+    Qtd: p.quantidade || "",
+    CRT: p.crt || "",
+    Mercadoria: p.mercadoria || "",
+    Fatura: p.fatura || "",
+    Obs: p.observacao || "",
+    Peso: p.pesoLiquido || "",
+    Parceiro: p.parceiro || "",
+    "DU-E": p.numeroDue || "",
+    "Resp. DU-E": p.responsavelDue || "-",
+    "Resp. C.O": p.responsavelCo || "-",
+    LPCO: p.lpco || "-",
+    País: p.pais || "-",
+    Desembaraço: p.desembaraco || "-"
+  };
+});
 
   const planilha = XLSX.utils.json_to_sheet(dados);
-  const arquivo = XLSX.utils.book_new();
+const arquivo = XLSX.utils.book_new();
 
-  XLSX.utils.book_append_sheet(arquivo, planilha, "Relatório Geral");
+XLSX.utils.book_append_sheet(arquivo, planilha, "Relatório Geral");
 
-  XLSX.writeFile(
-    arquivo,
-    `relatorio_geral_processos_${dataArquivo()}.xlsx`
-  );
+XLSX.writeFile(
+  arquivo,
+  `relatorio_geral_processos_${dataArquivo()}.xlsx`
+);
 }
 
 function exportarPDF() {
@@ -988,20 +981,39 @@ function exportarPDF() {
   )];
 
   dias.forEach(function(dia) {
-    const processosDoDia = processosExportar.filter(function(p) {
-      return formatarDataLancamentoParaDia(p.dataLancamento) === dia;
-    });
+    const processosDoDia = ordenarProcessosRelatorio(
+  processosExportar.filter(function(p) {
+    return formatarDataLancamentoParaDia(p.dataLancamento) === dia;
+  })
+);
 
     pdf.setFontSize(11);
     pdf.text("Data de lançamento: " + dia, 14, yAtual);
     yAtual += 5;
 
-    const corpoDia = processosDoDia.map(function(p) {
-    return [
+   let corpoDia = [];
+
+function adicionarTituloGrupo(titulo) {
+  corpoDia.push([
+    {
+      content: titulo,
+      colSpan: 15,
+      styles: {
+        halign: "center",
+        fontStyle: "bold",
+        fontSize: 11,
+        fillColor: [220, 220, 220],
+        textColor: [0, 0, 0]
+      }
+    }
+  ]);
+}
+
+function adicionarProcessoPDF(p) {
+  corpoDia.push([
     p.empresa || "",
     p.cnpj || "",
     p.quantidade || "",
-    formatarData(p.dataAverbacao),
     p.crt || "",
     p.mercadoria || "",
     p.fatura || "",
@@ -1009,49 +1021,90 @@ function exportarPDF() {
     p.pesoLiquido || "",
     p.parceiro || "",
     p.numeroDue || "",
-    p.responsavelDue === "Exacta" ? "Exacta" : "-",
-    p.responsavelDue === "Parceiro" ? "Parceiro" : "-",
-    p.responsavelDue === "Exportador" ? "Exportador" : "-",
-    p.responsavelCo === "Exacta" ? "Exacta" : "-",
-    p.responsavelCo === "Parceiro" ? "Parceiro" : "-",
-    p.responsavelCo === "Exportador" ? "Exportador" : "-",
-    p.lpco || "-"
-   ];
-   });
+    p.responsavelDue || "-",
+    p.responsavelCo || "-",
+    p.lpco || "-",
+    p.pais || "-",
+    p.desembaraco || "-"
+  ]);
+}
 
-      pdf.autoTable({
+const normais = processosDoDia
+  .filter(function(p) {
+    return !p.fracionado && !p.aduanaIntegrada;
+  })
+  .sort(function(a, b) {
+    return (a.empresa || "").localeCompare(b.empresa || "", "pt-BR");
+  });
+
+const fracionados = processosDoDia
+  .filter(function(p) {
+    return p.fracionado && !p.aduanaIntegrada;
+  })
+  .sort(function(a, b) {
+    return (a.empresa || "").localeCompare(b.empresa || "", "pt-BR");
+  });
+
+const aduana = processosDoDia
+  .filter(function(p) {
+    return p.aduanaIntegrada;
+  })
+  .sort(function(a, b) {
+    return (a.empresa || "").localeCompare(b.empresa || "", "pt-BR");
+  });
+
+normais.forEach(adicionarProcessoPDF);
+
+if (fracionados.length > 0) {
+  adicionarTituloGrupo("FRACIONADO");
+  fracionados.forEach(adicionarProcessoPDF);
+}
+
+if (aduana.length > 0) {
+  adicionarTituloGrupo("ADUANA INTEGRADA");
+  aduana.forEach(adicionarProcessoPDF);
+}
+
+    pdf.autoTable({
       startY: yAtual,
-      head: [[
-      "Empresa",
-      "CNPJ",
-      "Qtd",
-      "Liberado",
-      "CRT",
-     "Mercadoria",
-     "Fatura",
-     "Obs.",
-     "Peso",
-     "Parceiro",
-     "DU-E",
-     "DU-E Ex.",
-     "DU-E Parc.",
-     "DU-E Exp.",
-     "C.O Ex.",
-     "C.O Parc.",
-     "C.O Exp.",
-     "LPCO"
-     ]],
-
+     head: [[
+  "Empresa",
+  "CNPJ",
+  "Qtd",
+  "CRT",
+  "Mercadoria",
+  "Fatura",
+  "Obs.",
+  "Peso",
+  "Parceiro",
+  "DU-E",
+  "Resp. DU-E",
+  "Resp. C.O",
+  "LPCO",
+  "País",
+  "Desembaraço"
+]],
       body: corpoDia,
       styles: {
-        fontSize: 5,
-        cellPadding: 1,
-        overflow: "linebreak"
+        fontSize: 10,
+        cellPadding: 2,
+        overflow: "linebreak",
+        lineWidth: 0.15,
+        lineColor: [180, 180, 180]
       },
       headStyles: {
         fillColor: [30, 41, 59],
         textColor: 255,
-        fontSize: 5
+        fontSize: 10,
+        lineWidth: 0.15,
+        lineColor: [180, 180, 180]
+      },
+      bodyStyles: {
+        lineWidth: 0.15,
+        lineColor: [200, 200, 200]
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245]
       },
       margin: {
         left: 8,
@@ -1272,8 +1325,8 @@ window.finalizarDia = async function(dia) {
   }
 
   const processosDoDia = processos.filter(function(p) {
-    return formatarDataLancamentoParaDia(p.dataLancamento) === dia;
-  });
+  return formatarDataLancamentoParaDia(p.dataLancamento) === dia;
+});
 
   const ids = processosDoDia.map(function(p) {
     return p.id;
@@ -1487,6 +1540,23 @@ valores.forEach(function(valor) {
 
 window.atualizarOpcoesRelatorio = atualizarOpcoesRelatorio;
 
+function ordenarProcessosRelatorio(lista) {
+  return [...lista].sort(function(a, b) {
+    const especialA = a.fracionado || a.aduanaIntegrada ? 1 : 0;
+    const especialB = b.fracionado || b.aduanaIntegrada ? 1 : 0;
+
+    if (especialA !== especialB) {
+      return especialA - especialB;
+    }
+
+    return (a.empresa || "").localeCompare(
+      b.empresa || "",
+      "pt-BR",
+      { sensitivity: "base" }
+    );
+  });
+}
+
 window.abrirAuditoria = async function() {
   if (nivelUsuario !== "admin") {
     alert("Acesso permitido apenas para administradores.");
@@ -1545,6 +1615,15 @@ window.fecharAuditoria = function() {
 window.entrarRelatorio = async function(tipo) {
   tipoRelatorioAtual = tipo;
 
+  const colunasFora = document.querySelectorAll(".coluna-fora");
+
+colunasFora.forEach(function(coluna) {
+  coluna.style.display =
+    tipo === "fora"
+      ? ""
+      : "none";
+});
+
   document.getElementById("telaEscolhaRelatorio").style.display = "none";
 
   const camposFora = document.querySelectorAll(".campo-fora");
@@ -1563,4 +1642,73 @@ window.entrarRelatorio = async function(tipo) {
   }
 
   await carregarProcessos();
+};
+
+function obterProcessosRelatorio() {
+  const tipo = document.getElementById("tipoRelatorio").value;
+  const valor = document.getElementById("valorRelatorioSelect").value
+    .trim()
+    .toLowerCase();
+
+  let lista = [...processos];
+
+  if (tipo !== "todos" && valor) {
+    lista = lista.filter(function(p) {
+      if (tipo === "dia") {
+        return formatarDataLancamentoParaDia(p.dataLancamento).toLowerCase() === valor;
+      }
+
+      if (tipo === "empresa") {
+        return (p.empresa || "").toLowerCase().includes(valor);
+      }
+
+      if (tipo === "cnpj") {
+        return (p.cnpj || "").toLowerCase().includes(valor);
+      }
+
+      if (tipo === "fatura") {
+        return (p.fatura || "").toLowerCase().includes(valor);
+      }
+
+      if (tipo === "due") {
+        return (p.numeroDue || "").toLowerCase().includes(valor);
+      }
+
+      if (tipo === "parceiro") {
+        return (p.parceiro || "").toLowerCase().includes(valor);
+      }
+
+      return true;
+    });
+  }
+
+  return lista;
+}
+
+window.mostrarPreviaRelatorio = function() {
+  const lista = obterProcessosRelatorio();
+
+  if (lista.length === 0) {
+    alert("Nenhum processo encontrado para esse filtro.");
+    return;
+  }
+
+  const processosOriginais = processos;
+
+  processos = lista;
+  renderizarTabela();
+
+  processos = processosOriginais;
+};
+
+window.voltarEscolhaRelatorio = function() {
+  tipoRelatorioAtual = null;
+  processos = [];
+
+  document.getElementById("telaEscolhaRelatorio").style.display = "flex";
+
+  const tbody = document.getElementById("tabelaProcessos");
+  if (tbody) {
+    tbody.innerHTML = "";
+  }
 };
