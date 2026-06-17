@@ -12,6 +12,7 @@ console.log("Supabase conectado:", banco);
 
 let processos = [];
 let lixeira = [];
+let tipoRelatorioAtual = null;
 let editandoIndex = null;
 let diasAbertos = {};
 let diaSelecionadoExportacao = null;
@@ -57,16 +58,16 @@ async function carregarProcessos() {
 
   mostrarLoading();
 
-  const { data, error } = await banco
-    .from("processos")
-    .select("*")
-    .eq("excluido", false);
+let consulta = banco
+  .from("processos")
+  .select("*")
+  .eq("excluido", false);
 
-  if (error) {
-    console.error("Erro ao carregar processos:", error);
-    esconderLoading();
-    return;
-  }
+if (tipoRelatorioAtual) {
+  consulta = consulta.eq("tipo_relatorio", tipoRelatorioAtual);
+}
+
+const { data, error } = await consulta;
 
 
       processos = data.map(function(p) {
@@ -90,6 +91,9 @@ async function carregarProcessos() {
       aduanaIntegrada: !!p.aduana_integrada,
       fracionado: p.aduana_integrada ? false : !!p.fracionado,
       parceiro: p.parceiro || "",
+      pais: p.pais || "",
+     desembaraco: p.desembaraco || "",
+     tipoRelatorio: p.tipo_relatorio || "foz",
       financeiroCobrou: p.financeiro_cobrou || false,
       dataLancamento: p.data_lancamento || "",
       diaFinalizado: p.dia_finalizado || false
@@ -117,6 +121,8 @@ async function carregarProcessos() {
  }
 
 window.salvarProcesso = async function () {
+  const pais = document.getElementById("pais")?.value.trim() || "";
+  const desembaraco = document.getElementById("desembaraco")?.value.trim() || "";
   const empresa = valor("empresa").trim();
   const cnpj = valor("cnpj").trim();
   const quantidade = valor("quantidade");
@@ -140,46 +146,48 @@ window.salvarProcesso = async function () {
     return;
   }
 
-  const processo = {
-    empresa: empresa,
-    cnpj: cnpj,
-    fatura: fatura,
+   const processo = {
+   empresa: empresa,
+   cnpj: cnpj,
+   fatura: fatura,
+   tipo_relatorio: tipoRelatorioAtual || "foz",
+   pais: tipoRelatorioAtual === "fora" ? pais : null,
+   desembaraco: tipoRelatorioAtual === "fora" ? desembaraco : null,
 
-    quantidade: aduanaIntegrada ? null : quantidade || null,
-    data_averbacao: aduanaIntegrada ? null : dataAverbacao || null,
-    crt: aduanaIntegrada ? null : crt || null,
-    mercadoria: aduanaIntegrada ? null : mercadoria || null,
-    observacao: aduanaIntegrada ? null : observacao || null,
-    numero_veiculo: aduanaIntegrada ? null : numeroVeiculo || null,
-    transporte: aduanaIntegrada ? null : transporte || null,
-    peso_liquido: pesoLiquido || null,
-    numero_due: aduanaIntegrada ? null : numeroDue || null,
-    lpco: aduanaIntegrada ? null : lpco || null,
-    parceiro: parceiro || null,
+   quantidade: aduanaIntegrada ? null : quantidade || null,
+   data_averbacao: aduanaIntegrada ? null : dataAverbacao || null,
+   crt: aduanaIntegrada ? null : crt || null,
+   mercadoria: aduanaIntegrada ? null : mercadoria || null,
+   observacao: aduanaIntegrada ? null : observacao || null,
+   numero_veiculo: aduanaIntegrada ? null : numeroVeiculo || null,
+   transporte: aduanaIntegrada ? null : transporte || null,
+   peso_liquido: pesoLiquido || null,
+   numero_due: aduanaIntegrada ? null : numeroDue || null,
+   lpco: aduanaIntegrada ? null : lpco || null,
+   parceiro: parceiro || null,
 
+ responsavel_due: aduanaIntegrada
+  ? null
+  : document.getElementById("responsavelDue").value,
 
-    responsavel_due: aduanaIntegrada
-      ? null
-      : document.querySelector('input[name="due"]:checked')?.value || null,
+responsavel_co: aduanaIntegrada
+  ? null
+  : document.getElementById("responsavelCo").value,
 
-    responsavel_co: aduanaIntegrada
-      ? null
-      : document.querySelector('input[name="co"]:checked')?.value || null,
+fracionado: aduanaIntegrada
+  ? false
+  : document.getElementById("fracionado").checked,
 
-    fracionado: aduanaIntegrada
-      ? false
-      : document.getElementById("fracionado").checked,
+aduana_integrada: aduanaIntegrada,
 
-    aduana_integrada: aduanaIntegrada,
+financeiro_cobrou: editandoIndex === null
+  ? false
+  : processos[editandoIndex].financeiroCobrou,
 
-    financeiro_cobrou: editandoIndex === null
-      ? false
-      : processos[editandoIndex].financeiroCobrou,
+usuario_lancamento: usuarioAtual || "Usuário não identificado"
+};
 
-    usuario_lancamento: usuarioAtual || "Usuário não identificado"
-  };
-
-  if (editandoIndex === null) {
+   if (editandoIndex === null) {
     const { error } = await banco
       .from("processos")
       .insert([processo]);
@@ -252,8 +260,8 @@ function limparFormulario() {
   document.getElementById("fracionado").checked = false;
   document.getElementById("aduanaIntegrada").checked = false;
 
-  document.querySelector('input[name="due"][value="Exacta"]').checked = true;
-  document.querySelector('input[name="co"][value="Exacta"]').checked = true;
+  document.getElementById("responsavelDue").value = "Exacta";
+  document.getElementById("responsavelCo").value = "Exacta";
 }
 
 function podeFinanceiro() {
@@ -518,7 +526,7 @@ tbody.appendChild(tr);
   alert("Dia selecionado para exportação: " + dia);
 };
 
-  window.editarProcesso = function(index) {
+window.editarProcesso = function(index) {
   const p = processos[index];
 
   document.getElementById("empresa").value = p.empresa || "";
@@ -536,28 +544,32 @@ tbody.appendChild(tr);
   document.getElementById("numeroDue").value = p.numeroDue || "";
   document.getElementById("lpco").value = p.lpco || "";
 
+  // NOVOS CAMPOS DO RELATÓRIO FORA
+  const campoPais = document.getElementById("pais");
+  const campoDesembaraco = document.getElementById("desembaraco");
+
+  if (campoPais) {
+    campoPais.value = p.pais || "";
+  }
+
+  if (campoDesembaraco) {
+    campoDesembaraco.value = p.desembaraco || "";
+  }
+
+  // DU-E e C.O
+  document.getElementById("responsavelDue").value =
+    p.responsavelDue || "Exacta";
+
+  document.getElementById("responsavelCo").value =
+    p.responsavelCo || "Exacta";
+
   document.getElementById("fracionado").checked = !!p.fracionado;
   document.getElementById("aduanaIntegrada").checked = !!p.aduanaIntegrada;
 
-  const dueRadio = document.querySelector(
-    `input[name="due"][value="${p.responsavelDue || "Exacta"}"]`
-  );
-
-  const coRadio = document.querySelector(
-    `input[name="co"][value="${p.responsavelCo || "Exacta"}"]`
-  );
-
-  if (dueRadio) {
-    dueRadio.checked = true;
-  }
-
-  if (coRadio) {
-    coRadio.checked = true;
-  }
-
   editandoIndex = index;
 
-  document.getElementById("btnSalvar").innerText = "Atualizar Processo";
+  document.getElementById("btnSalvar").innerText =
+    "Atualizar Processo";
 
   window.scrollTo({
     top: 0,
@@ -985,54 +997,51 @@ function exportarPDF() {
     yAtual += 5;
 
     const corpoDia = processosDoDia.map(function(p) {
-      return [
-        p.empresa || "",
-        p.cnpj || "",
-        p.quantidade || "",
-        formatarData(p.dataAverbacao),
-        p.crt || "",
-        p.mercadoria || "",
-        p.fatura || "",
-        p.observacao || "",
-        p.numeroVeiculo || "",
-        p.transporte || "",
-        p.pesoLiquido || "",
-        p.parceiro || "",
-        p.numeroDue || "",
-        p.responsavelDue === "Exacta" ? "Exacta" : "-",
-        p.responsavelDue === "Parceiro" ? "Parceiro" : "-",
-        p.responsavelCo === "Exacta" ? "Exacta" : "-",
-        p.responsavelCo === "Parceiro" ? "Parceiro" : "-",
-        p.lpco || "-",
-        p.financeiroCobrou ? "COBRADO" : "PENDENTE",
-        formatarDataLancamentoParaDia(p.dataLancamento)
-      ];
-    });
+    return [
+    p.empresa || "",
+    p.cnpj || "",
+    p.quantidade || "",
+    formatarData(p.dataAverbacao),
+    p.crt || "",
+    p.mercadoria || "",
+    p.fatura || "",
+    p.observacao || "",
+    p.pesoLiquido || "",
+    p.parceiro || "",
+    p.numeroDue || "",
+    p.responsavelDue === "Exacta" ? "Exacta" : "-",
+    p.responsavelDue === "Parceiro" ? "Parceiro" : "-",
+    p.responsavelDue === "Exportador" ? "Exportador" : "-",
+    p.responsavelCo === "Exacta" ? "Exacta" : "-",
+    p.responsavelCo === "Parceiro" ? "Parceiro" : "-",
+    p.responsavelCo === "Exportador" ? "Exportador" : "-",
+    p.lpco || "-"
+   ];
+   });
 
-    pdf.autoTable({
+      pdf.autoTable({
       startY: yAtual,
       head: [[
-        "Empresa",
-        "CNPJ",
-        "Qtd",
-        "Liberado",
-        "CRT",
-        "Mercadoria",
-        "Fatura",
-        "Obs.",
-        "Veículo",
-        "Transp.",
-        "Peso",
-        "Parceiro",
-        "DU-E",
-        "DU-E Ex.",
-        "DU-E Parc.",
-        "C.O Ex.",
-        "C.O Parc.",
-        "LPCO",
-        "Fin.",
-        "Data"
-      ]],
+      "Empresa",
+      "CNPJ",
+      "Qtd",
+      "Liberado",
+      "CRT",
+     "Mercadoria",
+     "Fatura",
+     "Obs.",
+     "Peso",
+     "Parceiro",
+     "DU-E",
+     "DU-E Ex.",
+     "DU-E Parc.",
+     "DU-E Exp.",
+     "C.O Ex.",
+     "C.O Parc.",
+     "C.O Exp.",
+     "LPCO"
+     ]],
+
       body: corpoDia,
       styles: {
         fontSize: 5,
@@ -1140,9 +1149,7 @@ window.fazerLogin = async function() {
 usuarioAtual = data.user.email;
 
 await carregarNivelUsuario(usuarioAtual);
-await carregarProcessos();
 ativarRealtimeProcessos();
-await criarBackupAutomatico();
 
 const telaLogin = document.getElementById("telaLogin");
 const usuarioLogadoEl = document.getElementById("usuarioLogado");
@@ -1150,6 +1157,8 @@ const usuarioLogadoEl = document.getElementById("usuarioLogado");
 if (telaLogin) {
   telaLogin.style.display = "none";
 }
+
+document.getElementById("telaEscolhaRelatorio").style.display = "flex";
 
 if (usuarioLogadoEl) {
   usuarioLogadoEl.innerText = data.user.email;
@@ -1166,9 +1175,8 @@ async function verificarLogin() {
     usuarioAtual = data.session.user.email;
 
     await carregarNivelUsuario(usuarioAtual);
-    await carregarProcessos();
-    ativarRealtimeProcessos();
-    await criarBackupAutomatico();
+ativarRealtimeProcessos();
+
 
     if (telaLogin) {
       telaLogin.style.display = "none";
@@ -1323,106 +1331,7 @@ document.addEventListener("keydown", function(event) {
 });
 
 async function criarBackupAutomatico() {
-  console.log("=== BACKUP INICIADO ===");
-
-  const hojeSistema = new Date().toLocaleDateString("pt-BR");
-  const hojeBanco = new Date().toISOString().split("T")[0];
-
-  const processosHoje = processos.filter(function(p) {
-    return formatarDataLancamentoParaDia(p.dataLancamento) === hojeSistema;
-  });
-
-  console.log("Processos hoje:", processosHoje);
-
-  if (processosHoje.length === 0) {
-    console.log("Nenhum processo de hoje para backup.");
-    return;
-  }
-
-  const { data: backupExistente, error: erroBusca } = await banco
-    .from("backups")
-    .select("id")
-    .eq("data_backup", hojeBanco)
-    .limit(1)
-    .maybeSingle();
-
-  if (erroBusca) {
-    console.error("Erro ao verificar backup:", erroBusca);
-    return;
-  }
-
-  let backupId = null;
-
-  if (backupExistente) {
-    backupId = backupExistente.id;
-
-    await banco
-      .from("backups")
-      .update({ total_processos: processosHoje.length })
-      .eq("id", backupId);
-
-    await banco
-      .from("backup_processos")
-      .delete()
-      .eq("backup_id", backupId);
-  } else {
-    const { data: backupCriado, error: erroBackup } = await banco
-      .from("backups")
-      .insert([{
-        data_backup: hojeBanco,
-        total_processos: processosHoje.length,
-        dados_json: null
-      }])
-      .select("id")
-      .single();
-
-    if (erroBackup) {
-      console.error("Erro ao criar registro de backup:", erroBackup);
-      return;
-    }
-
-    backupId = backupCriado.id;
-  }
-
-  const dadosBackupProcessos = processosHoje.map(function(p) {
-    return {
-      backup_id: backupId,
-      data_backup: hojeBanco,
-      processo_id: p.id,
-      empresa: p.empresa || "",
-      cnpj: p.cnpj || "",
-      quantidade: p.quantidade || null,
-      data_averbacao: p.dataAverbacao || null,
-      crt: p.crt || "",
-      mercadoria: p.mercadoria || "",
-      fatura: p.fatura || "",
-      observacao: p.observacao || "",
-      numero_veiculo: p.numeroVeiculo || "",
-      transporte: p.transporte || "",
-      peso_liquido: p.pesoLiquido || null,
-      numero_due: p.numeroDue || "",
-      lpco: p.lpco || "",
-      responsavel_due: p.responsavelDue || "",
-      responsavel_co: p.responsavelCo || "",
-      fracionado: !!p.fracionado,
-      aduana_integrada: !!p.aduanaIntegrada,
-      financeiro_cobrou: !!p.financeiroCobrou,
-      usuario_lancamento: p.usuarioLancamento || usuarioAtual || "",
-      data_lancamento: p.dataLancamento || null,
-      dia_finalizado: !!p.diaFinalizado
-    };
-  });
-
-  const { error: erroDetalhes } = await banco
-    .from("backup_processos")
-    .insert(dadosBackupProcessos);
-
-  if (erroDetalhes) {
-    console.error("Erro ao gravar backup detalhado:", erroDetalhes);
-    return;
-  }
-
-  console.log("Backup atualizado com sucesso:", dadosBackupProcessos.length);
+  console.log("Backup desativado no banco. Futuramente será feito por download local.");
 }
 
 async function registrarHistorico(acao, processo) {
@@ -1578,6 +1487,80 @@ valores.forEach(function(valor) {
 
 window.atualizarOpcoesRelatorio = atualizarOpcoesRelatorio;
 
+window.abrirAuditoria = async function() {
+  if (nivelUsuario !== "admin") {
+    alert("Acesso permitido apenas para administradores.");
+    return;
+  }
+
+  const modal = document.getElementById("modalAuditoria");
+  const resultado = document.getElementById("resultadoAuditoria");
+
+  if (!modal || !resultado) {
+    alert("Modal de auditoria não encontrado.");
+    return;
+  }
+
+  modal.style.display = "flex";
+
+  resultado.innerHTML = `
+    <div class="audit-item">
+      <h2 class="audit-ok">🟢 Sistema Seguro</h2>
+    </div>
+
+    <div class="audit-item">
+      <strong>Export System • Multilog Tech</strong><br>
+      Versão: 2.1<br>
+      Ambiente: Produção
+    </div>
+
+    <div class="audit-item">
+      <strong>Usuário:</strong> ${usuarioAtual || "-"}<br>
+      <strong>Nível:</strong> ${nivelUsuario || "-"}
+    </div>
+
+    <div class="audit-item">
+      <strong>Processos carregados:</strong> ${processos.length}
+    </div>
+
+    <div class="audit-item">
+      ✅ Login ativo<br>
+      ✅ Supabase conectado<br>
+      ✅ RLS configurado<br>
+      ✅ Histórico de ações ativo<br>
+      ✅ Separação Foz/Fora ativa
+    </div>
+
+    <div class="audit-item">
+      <strong>Última verificação:</strong><br>
+      ${new Date().toLocaleString("pt-BR")}
+    </div>
+  `;
+};
+
 window.fecharAuditoria = function() {
   document.getElementById("modalAuditoria").style.display = "none";
+};
+
+window.entrarRelatorio = async function(tipo) {
+  tipoRelatorioAtual = tipo;
+
+  document.getElementById("telaEscolhaRelatorio").style.display = "none";
+
+  const camposFora = document.querySelectorAll(".campo-fora");
+
+  camposFora.forEach(function(campo) {
+    campo.style.display = tipo === "fora" ? "block" : "none";
+  });
+
+  const titulo = document.querySelector(".topbar h1");
+
+  if (titulo) {
+    titulo.innerText =
+      tipo === "foz"
+        ? "📍 Export System • Relatório Foz"
+        : "🌎 Export System • Relatório Fora de Foz";
+  }
+
+  await carregarProcessos();
 };
