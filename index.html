@@ -25,6 +25,10 @@
       <p>Controle de Processos de Exportação</p>
     </div>
 
+   <button id="btnAuditoria" class="audit-btn" onclick="abrirAuditoria()" style="display:none;">
+   🛡️ Auditoria
+   </button>
+
     <button class="trash-btn" onclick="abrirLixeira()">
       🗑️ Lixeira <span id="contadorLixeira">0</span>
     </button>
@@ -92,33 +96,22 @@
         <input id="numeroDue" placeholder="Número da DUE" />
         <input id="lpco" placeholder="LPCO" />
         <input id="parceiro" placeholder="Parceiro" />
+        <input id="pais" class="campo-fora" placeholder="País" style="display:none;" />
+        <input id="desembaraco" class="campo-fora" placeholder="Desembaraço" style="display:none;" />
       </div>
 
-      <div class="checks">
-        <label>
-          <input type="radio" name="due" value="Exacta" checked />
-          DU-E Exacta
-        </label>
+      <select id="responsavelDue">
+      <option value="Exacta">DU-E Exacta</option>
+      <option value="Parceiro">DU-E Parceiro</option>
+      <option value="Exportador">DU-E Exportador</option>
+     </select>
 
-        <label>
-          <input type="radio" name="due" value="Parceiro" />
-          DU-E Parceiro
-        </label>
-
-        <label>
-          <input type="radio" name="co" value="Exacta" checked />
-          C.O Exacta
-        </label>
-
-        <label>
-          <input type="radio" name="co" value="Parceiro" />
-          C.O Parceiro
-        </label>
-
-        <label>
-          <input type="radio" name="co" value="Sem C.O">
-          Sem C.O
-        </label>
+      <select id="responsavelCo">
+      <option value="Exacta">C.O Exacta</option>
+      <option value="Parceiro">C.O Parceiro</option>
+      <option value="Exportador">C.O Exportador</option>
+      <option value="Sem C.O">Sem C.O</option>
+     </select>
 
         <label>
           <input id="fracionado" type="checkbox" />
@@ -172,15 +165,6 @@
    🔄 Ver Tudo
    </button>
 
-     <button onclick="exportarExcel()">
-     📊 Excel
-     </button>
-
-      <button onclick="exportarPDF()">
-     📄 PDF
-     </button>
-
-    </section>
 
       <button onclick="exportarExcel()">
         📊 Excel
@@ -210,8 +194,10 @@
             <th>DU-E</th>
             <th>DU-E Exacta</th>
             <th>DU-E Parceiro</th>
+            <th>DU-E Exportador</th>
             <th>C.O Exacta</th>
             <th>C.O Parceiro</th>
+            <th>C.O Exportador</th>
             <th>LPCO</th>
             <th>Financeiro</th>
             <th>Data</th>
@@ -245,7 +231,21 @@
 
   <script src="app.js"></script>
 
-</body>
+   <div id="modalAuditoria" class="modal">
+   <div class="modal-content">
+
+      <div class="modal-header">
+      <h2>Auditoria do Sistema</h2>
+
+      <button onclick="fecharAuditoria()">
+        X
+      </button>
+      </div>
+
+      <div id="resultadoAuditoria"></div>
+
+    </div>
+  </div>
 
 <div id="telaLogin" class="login-screen">
   <div class="login-box login-novo">
@@ -265,8 +265,35 @@
     <small>Multilog Tech • Versão 2.0</small>
 
     <p id="loginErro"></p>
-
   </div>
 </div>
+
+<div id="telaEscolhaRelatorio" class="login-screen" style="display:none;">
+  <div class="escolha-relatorio-box">
+
+    <div class="logo-relatorio">📦</div>
+
+    <h1>Export System</h1>
+
+    <p>Selecione qual relatório deseja acessar</p>
+
+    <div class="cards-relatorio">
+
+      <div class="card-relatorio foz" onclick="entrarRelatorio('foz')">
+        <div class="icone-relatorio">📍</div>
+        <h2>Relatório Foz</h2>
+        <span>Processos de Foz do Iguaçu</span>
+      </div>
+
+      <div class="card-relatorio fora" onclick="entrarRelatorio('fora')">
+        <div class="icone-relatorio">🌎</div>
+        <h2>Relatório outras cidades</h2>
+        <span>Processos de outras cidades</span>
+     
+       </div>
+
+</body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
 
 </html>
