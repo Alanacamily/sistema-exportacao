@@ -679,3 +679,149 @@ tbody td {
   font-weight: 700;
   cursor: pointer;
 }
+
+.audit-btn {
+  background: #0f766e;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.audit-item {
+  background: #1e293b;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  color: white;
+}
+
+.audit-ok {
+  color: #22c55e;
+  font-weight: bold;
+}
+
+.audit-alerta {
+  color: #f59e0b;
+  font-weight: bold;
+}
+
+.escolha-relatorio-box{
+  width:700px;
+  max-width:95%;
+  background:#ffffff;
+  border-radius:20px;
+  padding:40px;
+  text-align:center;
+  box-shadow:0 10px 40px rgba(0,0,0,.15);
+}
+
+.logo-relatorio{
+  font-size:60px;
+  margin-bottom:10px;
+}
+
+.escolha-relatorio-box h1{
+  margin-bottom:10px;
+  color:#1e293b;
+}
+
+.escolha-relatorio-box p{
+  color:#64748b;
+  margin-bottom:30px;
+}
+
+.cards-relatorio{
+  display:flex;
+  gap:20px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+
+.card-relatorio{
+  width:260px;
+  padding:25px;
+  border-radius:16px;
+  cursor:pointer;
+  transition:.3s;
+  border:2px solid #e2e8f0;
+}
+
+.card-relatorio:hover{
+  transform:translateY(-5px);
+  box-shadow:0 10px 25px rgba(0,0,0,.15);
+}
+
+.card-relatorio.foz{
+  background:#eff6ff;
+}
+
+.card-relatorio.fora{
+  background:#f0fdf4;
+}
+
+.icone-relatorio{
+  font-size:50px;
+  margin-bottom:15px;
+}
+
+.card-relatorio h2{
+  color:#1e293b;
+  margin-bottom:10px;
+}
+
+.card-relatorio span{
+  color:#64748b;
+  font-size:14px;
+}
+
+.checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.checks label {
+  background: #0f172a;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  cursor: pointer;
+  color: white;
+  font-weight: 600;
+}
+
+.checks label:hover {
+  border-color: #38bdf8;
+  background: #111c33;
+}
+
+.checks input[type="radio"],
+.checks input[type="checkbox"] {
+  margin-right: 6px;
+}
+
+#telaEscolhaRelatorio {
+  display: none;
+}
+
+#responsavelDue,
+#responsavelCo {
+  background: #0f172a;
+  color: #dbeafe;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+  min-width: 160px;
+  height: 42px;
+}
+
+#responsavelDue:focus,
+#responsavelCo:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.18);
+}
