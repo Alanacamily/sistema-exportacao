@@ -1,4 +1,5 @@
-console.log("APP.JS CARREGOU");
+  console.log("APP.JS CARREGOU")
+  console.log("Supabase conectado")
 
 const SUPABASE_URL = "https://ayekrvnqjtmpvjtrwqnd.supabase.co";
 const SUPABASE_KEY = "sb_publishable_e9EC0WSIoq3ISWipVj1TTA_a_ZG1Bz0";
@@ -8,7 +9,7 @@ const banco = supabase.createClient(
   SUPABASE_KEY
 );
 
-console.log("Supabase conectado:", banco);
+console.log("Conexão Supabase inicializada")
 
 let processos = [];
 let lixeira = [];
@@ -904,48 +905,62 @@ function dadosFiltrados() {
 }
 
 function exportarExcel() {
-  if (processos.length === 0) {
+  const processosExportar = obterProcessosRelatorio();
+
+  if (processosExportar.length === 0) {
     alert("Não há processos para exportar.");
     return;
   }
 
-  const processosExportar = [...processos].sort(function(a, b) {
-    return (a.empresa || "").localeCompare(
-      b.empresa || "",
-      "pt-BR",
-      { sensitivity: "base" }
-    );
+  const dados = processosExportar.map(function(p) {
+    if (tipoRelatorioAtual === "fora") {
+      return {
+        Exportador: p.empresa || "",
+        CNPJ: p.cnpj || "",
+        Observação: p.observacao || "",
+        País: p.pais || "",
+        Transporte: p.transporte || "",
+        CRT: p.crt || "",
+        Fatura: p.fatura || "",
+        DUE: p.numeroDue || "",
+        Desembaraço: p.desembaraco || "",
+        Parceiro: p.parceiro || "",
+        Produto: p.mercadoria || "",
+        Veic: p.quantidade || "",
+        Peso: p.pesoLiquido || "",
+        "Resp. DU-E": p.responsavelDue || "-",
+        "Resp. C.O": p.responsavelCo || "-",
+        LPCO: p.lpco || "-"
+      };
+    }
+
+    return {
+      Empresa: p.empresa || "",
+      CNPJ: p.cnpj || "",
+      Qtd: p.quantidade || "",
+      Liberado: formatarData(p.dataAverbacao),
+      CRT: p.crt || "",
+      Mercadoria: p.mercadoria || "",
+      Fatura: p.fatura || "",
+      Obs: p.observacao || "",
+      Peso: p.pesoLiquido || "",
+      Parceiro: p.parceiro || "",
+      DUE: p.numeroDue || "",
+      "Resp. DU-E": p.responsavelDue || "-",
+      "Resp. C.O": p.responsavelCo || "-",
+      LPCO: p.lpco || "-"
+    };
   });
 
-   const dados = processosExportar.map(function(p) {
-  return {
-    Empresa: p.empresa || "",
-    CNPJ: p.cnpj || "",
-    Qtd: p.quantidade || "",
-    CRT: p.crt || "",
-    Mercadoria: p.mercadoria || "",
-    Fatura: p.fatura || "",
-    Obs: p.observacao || "",
-    Peso: p.pesoLiquido || "",
-    Parceiro: p.parceiro || "",
-    "DU-E": p.numeroDue || "",
-    "Resp. DU-E": p.responsavelDue || "-",
-    "Resp. C.O": p.responsavelCo || "-",
-    LPCO: p.lpco || "-",
-    País: p.pais || "-",
-    Desembaraço: p.desembaraco || "-"
-  };
-});
-
   const planilha = XLSX.utils.json_to_sheet(dados);
-const arquivo = XLSX.utils.book_new();
+  const arquivo = XLSX.utils.book_new();
 
-XLSX.utils.book_append_sheet(arquivo, planilha, "Relatório Geral");
+  XLSX.utils.book_append_sheet(arquivo, planilha, "Relatório");
 
-XLSX.writeFile(
-  arquivo,
-  `relatorio_geral_processos_${dataArquivo()}.xlsx`
-);
+  XLSX.writeFile(
+    arquivo,
+    `relatorio_processos_${dataArquivo()}.xlsx`
+  );
 }
 
 function exportarPDF() {
@@ -1642,6 +1657,14 @@ window.abrirAuditoria = async function() {
     return;
   }
 
+  const modal = document.getElementById("modalAuditoria");
+  const resultado = document.getElementById("resultadoAuditoria");
+
+  if (!modal || !resultado) {
+    alert("Modal de auditoria não encontrado.");
+    return;
+  }
+
   modal.style.display = "flex";
 
   resultado.innerHTML = `
@@ -1661,15 +1684,16 @@ window.abrirAuditoria = async function() {
     </div>
 
     <div class="audit-item">
+      <strong>Relatório atual:</strong> ${tipoRelatorioAtual || "-"}<br>
       <strong>Processos carregados:</strong> ${processos.length}
     </div>
 
     <div class="audit-item">
       ✅ Login ativo<br>
       ✅ Supabase conectado<br>
-      ✅ RLS configurado<br>
       ✅ Histórico de ações ativo<br>
-      ✅ Separação Foz/Fora ativa
+      ✅ Separação Foz/Fora ativa<br>
+      ✅ Backup local habilitado para admin
     </div>
 
     <div class="audit-item">
@@ -1683,31 +1707,61 @@ window.fecharAuditoria = function() {
   document.getElementById("modalAuditoria").style.display = "none";
 };
 
+
+ function montarFormularioFoz() {
+  document.querySelector(".grid").innerHTML = `
+    <input id="empresa" placeholder="Empresa" />
+    <input id="cnpj" placeholder="CNPJ" />
+    <input id="quantidade" type="number" placeholder="Qtd. Veículos" />
+    <input id="dataAverbacao" type="date" />
+    <input id="crt" placeholder="CRT" />
+    <input id="mercadoria" placeholder="Mercadoria" />
+    <input id="fatura" placeholder="Fatura" />
+    <input id="observacao" placeholder="Observação Multilog" />
+    <input id="numeroVeiculo" placeholder="Número do Veículo" />
+    <input id="transporte" placeholder="Transporte" />
+    <input id="pesoLiquido" type="number" step="0.01" placeholder="Peso Líquido" />
+    <input id="numeroDue" placeholder="Número da DUE" />
+    <input id="lpco" placeholder="LPCO" />
+    <input id="parceiro" placeholder="Parceiro" />
+    <input id="pais" type="hidden" />
+    <input id="desembaraco" type="hidden" />
+  `;
+}
+
+function montarFormularioFora() {
+  document.querySelector(".grid").innerHTML = `
+    <input id="empresa" placeholder="Empresa" />
+    <input id="cnpj" placeholder="CNPJ" />
+    <input id="observacao" placeholder="Observação" />
+    <input id="pais" placeholder="País" />
+    <input id="transporte" placeholder="Transporte" />
+    <input id="crt" placeholder="CRT" />
+    <input id="fatura" placeholder="Fatura" />
+    <input id="numeroDue" placeholder="Número da DUE" />
+    <input id="desembaraco" placeholder="Desembaraço" />
+    <input id="parceiro" placeholder="Parceiro" />
+    <input id="mercadoria" placeholder="Produto" />
+    <input id="quantidade" type="number" placeholder="Veic." />
+    <input id="pesoLiquido" type="number" step="0.01" placeholder="Peso" />
+    <input id="lpco" placeholder="LPCO" />
+    <input id="dataAverbacao" type="hidden" />
+    <input id="numeroVeiculo" type="hidden" />
+  `;
+}
+
 window.entrarRelatorio = async function(tipo) {
   tipoRelatorioAtual = tipo;
 
   if (tipo === "fora") {
-    document.querySelector(".grid").innerHTML = `
-      <input id="empresa" placeholder="Empresa" />
-      <input id="cnpj" placeholder="CNPJ" />
-
-      <input id="observacao" placeholder="Observação" />
-      <input id="pais" placeholder="País" />
-      <input id="transporte" placeholder="Transporte" />
-      <input id="crt" placeholder="CRT" />
-      <input id="fatura" placeholder="Fatura" />
-      <input id="numeroDue" placeholder="Número da DUE" />
-      <input id="desembaraco" placeholder="Desembaraço" />
-      <input id="parceiro" placeholder="Parceiro" />
-      <input id="mercadoria" placeholder="Produto" />
-      <input id="quantidade" type="number" placeholder="Veic." />
-      <input id="pesoLiquido" type="number" step="0.01" placeholder="Peso" />
-      <input id="lpco" placeholder="LPCO" />
-
-      <input id="dataAverbacao" type="hidden" />
-      <input id="numeroVeiculo" type="hidden" />
-    `;
+    montarFormularioFora();
+  } else {
+    montarFormularioFoz();
   }
+
+  document.getElementById("tipoRelatorio").value = "todos";
+  document.getElementById("valorRelatorioSelect").innerHTML =
+    '<option value="">Todos os Processos</option>';
 
   document.getElementById("telaEscolhaRelatorio").style.display = "none";
 
@@ -1721,7 +1775,7 @@ window.entrarRelatorio = async function(tipo) {
   }
 
   await carregarProcessos();
-};
+};  
 
 function obterProcessosRelatorio() {
   const tipo = document.getElementById("tipoRelatorio").value;
@@ -1917,42 +1971,58 @@ window.entrarRelatorio = async function(tipo) {
 };
 
 window.baixarBackupLocal = function() {
+  const processosBackup = [...processos];
 
-  if (processos.length === 0) {
+  if (processosBackup.length === 0) {
     alert("Nenhum processo carregado para backup.");
     return;
   }
 
-  const dados = processos.map(function(p) {
+ const dados = processosBackup.map(function(p) {
+
+  if ((p.tipoRelatorio || tipoRelatorioAtual) === "fora") {
     return {
-      Empresa: p.empresa,
-      CNPJ: p.cnpj,
-      Quantidade: p.quantidade,
-      Liberado: p.dataAverbacao,
-      CRT: p.crt,
-      Mercadoria: p.mercadoria,
-      Fatura: p.fatura,
-      Observacao: p.observacao,
-      Veiculo: p.numeroVeiculo,
-      Transporte: p.transporte,
-      Peso: p.pesoLiquido,
-      Parceiro: p.parceiro,
-      DUE: p.numeroDue,
-      LPCO: p.lpco,
-      Pais: p.pais,
-      Desembaraco: p.desembaraco,
-      DataLancamento: p.dataLancamento
+      Exportador: p.empresa || "",
+      CNPJ: p.cnpj || "",
+      Observação: p.observacao || "",
+      País: p.pais || "",
+      Transporte: p.transporte || "",
+      CRT: p.crt || "",
+      Fatura: p.fatura || "",
+      DUE: p.numeroDue || "",
+      Desembaraço: p.desembaraco || "",
+      Parceiro: p.parceiro || "",
+      Produto: p.mercadoria || "",
+      Veic: p.quantidade || "",
+      Peso: p.pesoLiquido || "",
+      "Resp. DU-E": p.responsavelDue || "-",
+      "Resp. C.O": p.responsavelCo || "-",
+      LPCO: p.lpco || "-"
     };
-  });
+  }
+
+  return {
+    Empresa: p.empresa || "",
+    CNPJ: p.cnpj || "",
+    Qtd: p.quantidade || "",
+    Liberado: formatarData(p.dataAverbacao),
+    CRT: p.crt || "",
+    Mercadoria: p.mercadoria || "",
+    Fatura: p.fatura || "",
+    Obs: p.observacao || "",
+    Peso: p.pesoLiquido || "",
+    Parceiro: p.parceiro || "",
+    DUE: p.numeroDue || "",
+    "Resp. DU-E": p.responsavelDue || "-",
+    "Resp. C.O": p.responsavelCo || "-",
+    LPCO: p.lpco || "-"
+  };
+});
 
   const planilha = XLSX.utils.json_to_sheet(dados);
   const arquivo = XLSX.utils.book_new();
 
-  XLSX.utils.book_append_sheet(
-    arquivo,
-    planilha,
-    "Backup"
-  );
+  XLSX.utils.book_append_sheet(arquivo, planilha, "Backup");
 
   XLSX.writeFile(
     arquivo,
