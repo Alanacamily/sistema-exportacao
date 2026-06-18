@@ -76,6 +76,7 @@ const { data, error } = await consulta;
       empresa: p.empresa || "",
       cnpj: p.cnpj || "",
       quantidade: p.quantidade || "",
+      dataAverbacao: p.data_averbacao || "",
       crt: p.crt || "",
       mercadoria: p.mercadoria || "",
       fatura: p.fatura || "",
@@ -1005,6 +1006,7 @@ function exportarPDF() {
 
   let yAtual = 36;
 
+
   const cabecalhoPDF = relatorioFora
 ? [[
   "EXPORTADOR",
@@ -1070,7 +1072,7 @@ function exportarPDF() {
       corpoDia.push([
         {
           content: titulo,
-          colSpan: relatorioFora ? 16 : 12,
+          colSpan: relatorioFora ? 16 : 14,
           styles: {
             halign: "center",
             fontStyle: "bold",
@@ -1083,43 +1085,43 @@ function exportarPDF() {
     }
 
     function adicionarProcessoPDF(p) {
-      if (relatorioFora) {
-        corpoDia.push([
-          p.empresa || "",
-          p.cnpj || "",
-          p.observacao || "",
-          p.pais || "",
-          p.transporte || "",
-          p.crt || "",
-          p.fatura || "",
-          p.numeroDue || "",
-          p.desembaraco || "",
-          p.parceiro || "",
-          p.mercadoria || "",
-          p.quantidade || "",
-          p.pesoLiquido || "",
-          p.responsavelDue || "-",
-          p.responsavelCo || "-",
-          p.lpco || "-"
-        ]);
-        return;
-      }
+  if (relatorioFora) {
+   corpoDia.push([
+  p.empresa || "",
+  p.cnpj || "",
+  p.quantidade || "",
+  formatarData(p.dataAverbacao),
+  p.crt || "",
+  p.mercadoria || "",
+  p.fatura || "",
+  p.observacao || "",
+  p.pesoLiquido || "",
+  p.parceiro || "",
+  p.numeroDue || "",
+  p.responsavelDue || "-",
+  p.responsavelCo || "-",
+  p.lpco || "-"
+]);
+    return;
+  }
 
-      corpoDia.push([
-        p.empresa || "",
-        p.cnpj || "",
-        p.crt || "",
-        p.mercadoria || "",
-        p.fatura || "",
-        p.observacao || "",
-        p.pesoLiquido || "",
-        p.parceiro || "",
-        p.numeroDue || "",
-        p.responsavelDue || "-",
-        p.responsavelCo || "-",
-        p.lpco || "-"
-      ]);
-    }
+  corpoDia.push([
+    p.empresa || "",
+    p.cnpj || "",
+    p.quantidade || "",
+    formatarData(p.dataAverbacao),
+    p.crt || "",
+    p.mercadoria || "",
+    p.fatura || "",
+    p.observacao || "",
+    p.pesoLiquido || "",
+    p.parceiro || "",
+    p.numeroDue || "",
+    p.responsavelDue || "-",
+    p.responsavelCo || "-",
+    p.lpco || "-"
+  ]);
+}
 
     const normais = ordenarPorEmpresa(
       processosDoDia.filter(function(p) {
@@ -1907,3 +1909,4 @@ window.entrarRelatorio = async function(tipo) {
 
   await carregarProcessos();
 };
+
