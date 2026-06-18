@@ -905,74 +905,91 @@ function exportarPDF() {
     return;
   }
 
+  const relatorioFora = tipoRelatorioAtual === "fora";
   const tipo = document.getElementById("tipoRelatorio").value;
-  const valor = document.getElementById("valorRelatorioSelect").value
-    .trim()
-    .toLowerCase();
+  const valor = document.getElementById("valorRelatorioSelect").value.trim().toLowerCase();
 
   let processosExportar = [...processos];
 
   if (tipo !== "todos" && valor) {
     processosExportar = processosExportar.filter(function(p) {
-      if (tipo === "dia") {
-        return formatarDataLancamentoParaDia(p.dataLancamento).toLowerCase() === valor;
-      }
-
-      if (tipo === "empresa") {
-        return (p.empresa || "").toLowerCase().includes(valor);
-      }
-
-      if (tipo === "cnpj") {
-        return (p.cnpj || "").toLowerCase().includes(valor);
-      }
-
-      if (tipo === "fatura") {
-        return (p.fatura || "").toLowerCase().includes(valor);
-      }
-
-      if (tipo === "due") {
-        return (p.numeroDue || "").toLowerCase().includes(valor);
-      }
-
-      if (tipo === "parceiro") {
-        return (p.parceiro || "").toLowerCase().includes(valor);
-      }
-
+      if (tipo === "dia") return formatarDataLancamentoParaDia(p.dataLancamento).toLowerCase() === valor;
+      if (tipo === "empresa") return (p.empresa || "").toLowerCase().includes(valor);
+      if (tipo === "cnpj") return (p.cnpj || "").toLowerCase().includes(valor);
+      if (tipo === "fatura") return (p.fatura || "").toLowerCase().includes(valor);
+      if (tipo === "due") return (p.numeroDue || "").toLowerCase().includes(valor);
+      if (tipo === "parceiro") return (p.parceiro || "").toLowerCase().includes(valor);
       return true;
     });
   }
-
-  processosExportar.sort(function(a, b) {
-    const dataA = converterDataBR(formatarDataLancamentoParaDia(a.dataLancamento));
-    const dataB = converterDataBR(formatarDataLancamentoParaDia(b.dataLancamento));
-
-    if (dataB - dataA !== 0) {
-      return dataB - dataA;
-    }
-
-    return (a.empresa || "").localeCompare(
-      b.empresa || "",
-      "pt-BR",
-      { sensitivity: "base" }
-    );
-  });
 
   if (processosExportar.length === 0) {
     alert("Nenhum processo encontrado para esse filtro.");
     return;
   }
 
+  processosExportar.sort(function(a, b) {
+    const dataA = converterDataBR(formatarDataLancamentoParaDia(a.dataLancamento));
+    const dataB = converterDataBR(formatarDataLancamentoParaDia(b.dataLancamento));
+
+    if (dataB - dataA !== 0) return dataB - dataA;
+
+    return (a.empresa || "").localeCompare(b.empresa || "", "pt-BR", {
+      sensitivity: "base"
+    });
+  });
+
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF("landscape", "mm", "a3");
 
   pdf.setFontSize(16);
-  pdf.text("Relatório Geral de Processos de Exportação", 14, 15);
+  pdf.text(
+    relatorioFora
+      ? "Relatório Fora de Foz"
+      : "Relatório Foz",
+    14,
+    15
+  );
 
   pdf.setFontSize(9);
   pdf.text(`Data de emissão: ${new Date().toLocaleString("pt-BR")}`, 14, 22);
   pdf.text(`Quantidade de registros: ${processosExportar.length}`, 14, 28);
 
   let yAtual = 36;
+
+  const cabecalhoPDF = relatorioFora
+? [[
+  "EXPORTADOR",
+  "CNPJ",
+  "OBSERVAÇÃO",
+  "PAÍS",
+  "TRANSPORTE",
+  "CRT",
+  "FAT",
+  "DUE",
+  "DESEMBARAÇADO",
+  "PARCEIRO",
+  "PRODUTO",
+  "VEIC",
+  "PESO",
+  "DU-E",
+  "C.O",
+  "LPCO"
+]]
+    : [[
+        "Empresa",
+        "CNPJ",
+        "CRT",
+        "Mercadoria",
+        "Fatura",
+        "Obs.",
+        "Peso",
+        "Parceiro",
+        "DU-E",
+        "Resp. DU-E",
+        "Resp. C.O",
+        "LPCO"
+      ]];
 
   const dias = [...new Set(
     processosExportar.map(function(p) {
@@ -981,109 +998,114 @@ function exportarPDF() {
   )];
 
   dias.forEach(function(dia) {
-    const processosDoDia = ordenarProcessosRelatorio(
-  processosExportar.filter(function(p) {
-    return formatarDataLancamentoParaDia(p.dataLancamento) === dia;
-  })
-);
+    const processosDoDia = processosExportar.filter(function(p) {
+      return formatarDataLancamentoParaDia(p.dataLancamento) === dia;
+    });
 
     pdf.setFontSize(11);
     pdf.text("Data de lançamento: " + dia, 14, yAtual);
     yAtual += 5;
 
-   let corpoDia = [];
+    let corpoDia = [];
 
-function adicionarTituloGrupo(titulo) {
-  corpoDia.push([
-    {
-      content: titulo,
-      colSpan: 15,
-      styles: {
-        halign: "center",
-        fontStyle: "bold",
-        fontSize: 11,
-        fillColor: [220, 220, 220],
-        textColor: [0, 0, 0]
-      }
+    function ordenarPorEmpresa(lista) {
+      return [...lista].sort(function(a, b) {
+        return (a.empresa || "").localeCompare(
+          b.empresa || "",
+          "pt-BR",
+          { sensitivity: "base" }
+        );
+      });
     }
-  ]);
-}
 
-function adicionarProcessoPDF(p) {
-  corpoDia.push([
-    p.empresa || "",
-    p.cnpj || "",
-    p.quantidade || "",
-    p.crt || "",
-    p.mercadoria || "",
-    p.fatura || "",
-    p.observacao || "",
-    p.pesoLiquido || "",
-    p.parceiro || "",
-    p.numeroDue || "",
-    p.responsavelDue || "-",
-    p.responsavelCo || "-",
-    p.lpco || "-",
-    p.pais || "-",
-    p.desembaraco || "-"
-  ]);
-}
+    function adicionarTituloGrupo(titulo) {
+      corpoDia.push([
+        {
+          content: titulo,
+          colSpan: relatorioFora ? 16 : 12,
+          styles: {
+            halign: "center",
+            fontStyle: "bold",
+            fontSize: 11,
+            fillColor: [220, 220, 220],
+            textColor: [0, 0, 0]
+          }
+        }
+      ]);
+    }
 
-const normais = processosDoDia
-  .filter(function(p) {
-    return !p.fracionado && !p.aduanaIntegrada;
-  })
-  .sort(function(a, b) {
-    return (a.empresa || "").localeCompare(b.empresa || "", "pt-BR");
-  });
+    function adicionarProcessoPDF(p) {
+      if (relatorioFora) {
+        corpoDia.push([
+          p.empresa || "",
+          p.cnpj || "",
+          p.observacao || "",
+          p.pais || "",
+          p.transporte || "",
+          p.crt || "",
+          p.fatura || "",
+          p.numeroDue || "",
+          p.desembaraco || "",
+          p.parceiro || "",
+          p.mercadoria || "",
+          p.quantidade || "",
+          p.pesoLiquido || "",
+          p.responsavelDue || "-",
+          p.responsavelCo || "-",
+          p.lpco || "-"
+        ]);
+        return;
+      }
 
-const fracionados = processosDoDia
-  .filter(function(p) {
-    return p.fracionado && !p.aduanaIntegrada;
-  })
-  .sort(function(a, b) {
-    return (a.empresa || "").localeCompare(b.empresa || "", "pt-BR");
-  });
+      corpoDia.push([
+        p.empresa || "",
+        p.cnpj || "",
+        p.crt || "",
+        p.mercadoria || "",
+        p.fatura || "",
+        p.observacao || "",
+        p.pesoLiquido || "",
+        p.parceiro || "",
+        p.numeroDue || "",
+        p.responsavelDue || "-",
+        p.responsavelCo || "-",
+        p.lpco || "-"
+      ]);
+    }
 
-const aduana = processosDoDia
-  .filter(function(p) {
-    return p.aduanaIntegrada;
-  })
-  .sort(function(a, b) {
-    return (a.empresa || "").localeCompare(b.empresa || "", "pt-BR");
-  });
+    const normais = ordenarPorEmpresa(
+      processosDoDia.filter(function(p) {
+        return !p.fracionado && !p.aduanaIntegrada;
+      })
+    );
 
-normais.forEach(adicionarProcessoPDF);
+    const fracionados = ordenarPorEmpresa(
+      processosDoDia.filter(function(p) {
+        return p.fracionado && !p.aduanaIntegrada;
+      })
+    );
 
-if (fracionados.length > 0) {
-  adicionarTituloGrupo("FRACIONADO");
-  fracionados.forEach(adicionarProcessoPDF);
-}
+    const aduana = ordenarPorEmpresa(
+      processosDoDia.filter(function(p) {
+        return p.aduanaIntegrada;
+      })
+    );
 
-if (aduana.length > 0) {
-  adicionarTituloGrupo("ADUANA INTEGRADA");
-  aduana.forEach(adicionarProcessoPDF);
-}
+    normais.forEach(adicionarProcessoPDF);
+
+    if (fracionados.length > 0) {
+      adicionarTituloGrupo("FRACIONADO");
+      fracionados.forEach(adicionarProcessoPDF);
+    }
+
+    if (aduana.length > 0) {
+      adicionarTituloGrupo("ADUANA INTEGRADA");
+      aduana.forEach(adicionarProcessoPDF);
+    }
 
     pdf.autoTable({
       startY: yAtual,
-     head: [[
-  "Empresa",
-  "CNPJ",
-  "Qtd",
-  "CRT",
-  "Mercadoria",
-  "Fatura",
-  "Obs.",
-  "Peso",
-  "Parceiro",
-  "DU-E",
-  "Resp. DU-E",
-  "Resp. C.O",
-  "LPCO",
-  "País",
-  "Desembaraço"
-]],
+      head: cabecalhoPDF,
       body: corpoDia,
       styles: {
         fontSize: 10,
@@ -1615,22 +1637,30 @@ window.fecharAuditoria = function() {
 window.entrarRelatorio = async function(tipo) {
   tipoRelatorioAtual = tipo;
 
-  const colunasFora = document.querySelectorAll(".coluna-fora");
+  if (tipo === "fora") {
+    document.querySelector(".grid").innerHTML = `
+      <input id="empresa" placeholder="Empresa" />
+      <input id="cnpj" placeholder="CNPJ" />
 
-colunasFora.forEach(function(coluna) {
-  coluna.style.display =
-    tipo === "fora"
-      ? ""
-      : "none";
-});
+      <input id="observacao" placeholder="Observação" />
+      <input id="pais" placeholder="País" />
+      <input id="transporte" placeholder="Transporte" />
+      <input id="crt" placeholder="CRT" />
+      <input id="fatura" placeholder="Fatura" />
+      <input id="numeroDue" placeholder="Número da DUE" />
+      <input id="desembaraco" placeholder="Desembaraço" />
+      <input id="parceiro" placeholder="Parceiro" />
+      <input id="mercadoria" placeholder="Produto" />
+      <input id="quantidade" type="number" placeholder="Veic." />
+      <input id="pesoLiquido" type="number" step="0.01" placeholder="Peso" />
+      <input id="lpco" placeholder="LPCO" />
+
+      <input id="dataAverbacao" type="hidden" />
+      <input id="numeroVeiculo" type="hidden" />
+    `;
+  }
 
   document.getElementById("telaEscolhaRelatorio").style.display = "none";
-
-  const camposFora = document.querySelectorAll(".campo-fora");
-
-  camposFora.forEach(function(campo) {
-    campo.style.display = tipo === "fora" ? "block" : "none";
-  });
 
   const titulo = document.querySelector(".topbar h1");
 
