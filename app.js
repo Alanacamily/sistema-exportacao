@@ -1340,21 +1340,24 @@ function aplicarPermissoes() {
   console.log("Aplicando permissões para:", nivelUsuario);
 
   const btnAuditoria = document.getElementById("btnAuditoria");
-
- if (btnAuditoria) {
-  btnAuditoria.style.display = nivelUsuario === "admin" ? "inline-block" : "none";
- }
-
+  const btnBackup = document.getElementById("btnBackup");
   const btnSalvar = document.getElementById("btnSalvar");
 
-  if (!btnSalvar) {
-    return;
+  if (btnAuditoria) {
+    btnAuditoria.style.display =
+      nivelUsuario === "admin" ? "inline-block" : "none";
   }
 
-  if (nivelUsuario === "admin" || nivelUsuario === "operador") {
-    btnSalvar.style.display = "inline-block";
-  } else {
-    btnSalvar.style.display = "none";
+  if (btnBackup) {
+    btnBackup.style.display =
+      nivelUsuario === "admin" ? "inline-block" : "none";
+  }
+
+  if (btnSalvar) {
+    btnSalvar.style.display =
+      nivelUsuario === "admin" || nivelUsuario === "operador"
+        ? "inline-block"
+        : "none";
   }
 }
 
@@ -1439,6 +1442,28 @@ document.addEventListener("keydown", function(event) {
 
 async function criarBackupAutomatico() {
   console.log("Backup desativado no banco. Futuramente será feito por download local.");
+}
+
+async function baixarBackupLocal() {
+  const backup = {
+    data: new Date().toLocaleString("pt-BR"),
+    processos,
+    lixeira
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(backup, null, 2)],
+    { type: "application/json" }
+  );
+
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `backup_export_system_${dataArquivo()}.json`;
+  a.click();
+
+  URL.revokeObjectURL(url);
 }
 
 async function registrarHistorico(acao, processo) {
@@ -1614,14 +1639,6 @@ function ordenarProcessosRelatorio(lista) {
 window.abrirAuditoria = async function() {
   if (nivelUsuario !== "admin") {
     alert("Acesso permitido apenas para administradores.");
-    return;
-  }
-
-  const modal = document.getElementById("modalAuditoria");
-  const resultado = document.getElementById("resultadoAuditoria");
-
-  if (!modal || !resultado) {
-    alert("Modal de auditoria não encontrado.");
     return;
   }
 
@@ -1897,4 +1914,48 @@ window.entrarRelatorio = async function(tipo) {
   }
 
   await carregarProcessos();
+};
+
+window.baixarBackupLocal = function() {
+
+  if (processos.length === 0) {
+    alert("Nenhum processo carregado para backup.");
+    return;
+  }
+
+  const dados = processos.map(function(p) {
+    return {
+      Empresa: p.empresa,
+      CNPJ: p.cnpj,
+      Quantidade: p.quantidade,
+      Liberado: p.dataAverbacao,
+      CRT: p.crt,
+      Mercadoria: p.mercadoria,
+      Fatura: p.fatura,
+      Observacao: p.observacao,
+      Veiculo: p.numeroVeiculo,
+      Transporte: p.transporte,
+      Peso: p.pesoLiquido,
+      Parceiro: p.parceiro,
+      DUE: p.numeroDue,
+      LPCO: p.lpco,
+      Pais: p.pais,
+      Desembaraco: p.desembaraco,
+      DataLancamento: p.dataLancamento
+    };
+  });
+
+  const planilha = XLSX.utils.json_to_sheet(dados);
+  const arquivo = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(
+    arquivo,
+    planilha,
+    "Backup"
+  );
+
+  XLSX.writeFile(
+    arquivo,
+    `backup_export_system_${dataArquivo()}.xlsx`
+  );
 };
