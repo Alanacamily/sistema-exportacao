@@ -955,22 +955,7 @@ function exportarPDF() {
   }
 
   const relatorioFora = tipoRelatorioAtual === "fora";
-  const tipo = document.getElementById("tipoRelatorio").value;
-  const valor = document.getElementById("valorRelatorioSelect").value.trim().toLowerCase();
-
   let processosExportar = obterProcessosRelatorio();
-
-  if (tipo !== "todos" && valor) {
-    processosExportar = processosExportar.filter(function(p) {
-      if (tipo === "dia") return formatarDataLancamentoParaDia(p.dataLancamento).toLowerCase() === valor;
-      if (tipo === "empresa") return (p.empresa || "").toLowerCase().includes(valor);
-      if (tipo === "cnpj") return (p.cnpj || "").toLowerCase().includes(valor);
-      if (tipo === "fatura") return (p.fatura || "").toLowerCase().includes(valor);
-      if (tipo === "due") return (p.numeroDue || "").toLowerCase().includes(valor);
-      if (tipo === "parceiro") return (p.parceiro || "").toLowerCase().includes(valor);
-      return true;
-    });
-  }
 
   if (processosExportar.length === 0) {
     alert("Nenhum processo encontrado para esse filtro.");
@@ -992,13 +977,7 @@ function exportarPDF() {
   const pdf = new jsPDF("landscape", "mm", "a3");
 
   pdf.setFontSize(16);
-  pdf.text(
-    relatorioFora
-      ? "Relatório Fora de Foz"
-      : "Relatório Foz",
-    14,
-    15
-  );
+  pdf.text(relatorioFora ? "Relatório Fora de Foz" : "Relatório Foz", 14, 15);
 
   pdf.setFontSize(9);
   pdf.text(`Data de emissão: ${new Date().toLocaleString("pt-BR")}`, 14, 22);
@@ -1006,38 +985,39 @@ function exportarPDF() {
 
   let yAtual = 36;
 
-
   const cabecalhoPDF = relatorioFora
-? [[
-  "EXPORTADOR",
-  "CNPJ",
-  "OBSERVAÇÃO",
-  "PAÍS",
-  "TRANSPORTE",
-  "CRT",
-  "FAT",
-  "DUE",
-  "DESEMBARAÇADO",
-  "PARCEIRO",
-  "PRODUTO",
-  "VEIC",
-  "PESO",
-  "DU-E",
-  "C.O",
-  "LPCO"
-]]
-    : [[
-        "Empresa",
+    ? [[
+        "EXPORTADOR",
         "CNPJ",
+        "OBSERVAÇÃO",
+        "PAÍS",
+        "TRANSPORTE",
         "CRT",
-        "Mercadoria",
-        "Fatura",
-        "Obs.",
-        "Peso",
-        "Parceiro",
-        "DU-E",
-        "Resp. DU-E",
-        "Resp. C.O",
+        "FATURA",
+        "DUE",
+        "DESEMBARAÇADO",
+        "PARCEIRO",
+        "PRODUTO",
+        "VEIC",
+        "PESO",
+        "RESP. DUE",
+        "RESP. C.O",
+        "LPCO"
+      ]]
+    : [[
+        "EMPRESA",
+        "CNPJ",
+        "QNT",
+        "LIBERADO",
+        "CRT",
+        "MERCADORIA",
+        "FATURA",
+        "OBS",
+        "PESO",
+        "PARCEIRO",
+        "DUE",
+        "RESP. DUE",
+        "RESP. C.O",
         "LPCO"
       ]];
 
@@ -1085,43 +1065,45 @@ function exportarPDF() {
     }
 
     function adicionarProcessoPDF(p) {
-  if (relatorioFora) {
-   corpoDia.push([
-  p.empresa || "",
-  p.cnpj || "",
-  p.quantidade || "",
-  formatarData(p.dataAverbacao),
-  p.crt || "",
-  p.mercadoria || "",
-  p.fatura || "",
-  p.observacao || "",
-  p.pesoLiquido || "",
-  p.parceiro || "",
-  p.numeroDue || "",
-  p.responsavelDue || "-",
-  p.responsavelCo || "-",
-  p.lpco || "-"
-]);
-    return;
-  }
+      if (relatorioFora) {
+        corpoDia.push([
+          p.empresa || "",
+          p.cnpj || "",
+          p.observacao || "-",
+          p.pais || "-",
+          p.transporte || "-",
+          p.crt || "-",
+          p.fatura || "-",
+          p.numeroDue || "-",
+          p.desembaraco || "-",
+          p.parceiro || "-",
+          p.mercadoria || "-",
+          p.quantidade || "-",
+          p.pesoLiquido || "-",
+          p.responsavelDue || "-",
+          p.responsavelCo || "-",
+          p.lpco || "-"
+        ]);
+        return;
+      }
 
-  corpoDia.push([
-    p.empresa || "",
-    p.cnpj || "",
-    p.quantidade || "",
-    formatarData(p.dataAverbacao),
-    p.crt || "",
-    p.mercadoria || "",
-    p.fatura || "",
-    p.observacao || "",
-    p.pesoLiquido || "",
-    p.parceiro || "",
-    p.numeroDue || "",
-    p.responsavelDue || "-",
-    p.responsavelCo || "-",
-    p.lpco || "-"
-  ]);
-}
+      corpoDia.push([
+        p.empresa || "",
+        p.cnpj || "",
+        p.quantidade || "-",
+        formatarData(p.dataAverbacao) || "-",
+        p.crt || "-",
+        p.mercadoria || "-",
+        p.fatura || "-",
+        p.observacao || "-",
+        p.pesoLiquido || "-",
+        p.parceiro || "-",
+        p.numeroDue || "-",
+        p.responsavelDue || "-",
+        p.responsavelCo || "-",
+        p.lpco || "-"
+      ]);
+    }
 
     const normais = ordenarPorEmpresa(
       processosDoDia.filter(function(p) {
@@ -1158,7 +1140,7 @@ function exportarPDF() {
       head: cabecalhoPDF,
       body: corpoDia,
       styles: {
-        fontSize: 10,
+        fontSize: 9,
         cellPadding: 2,
         overflow: "linebreak",
         lineWidth: 0.15,
@@ -1167,7 +1149,7 @@ function exportarPDF() {
       headStyles: {
         fillColor: [30, 41, 59],
         textColor: 255,
-        fontSize: 10,
+        fontSize: 9,
         lineWidth: 0.15,
         lineColor: [180, 180, 180]
       },
@@ -1188,7 +1170,7 @@ function exportarPDF() {
     yAtual = pdf.lastAutoTable.finalY + 8;
   });
 
-  pdf.save(`relatorio_geral_processos_${dataArquivo()}.pdf`);
+  pdf.save(`relatorio_processos_${dataArquivo()}.pdf`);
 }
 
 function formatarData(data) {
@@ -1803,6 +1785,13 @@ window.mostrarPreviaRelatorio = function() {
   }
 
   processos = lista;
+  diasAbertos = {};
+
+  lista.forEach(function(p) {
+    const dia = formatarDataLancamentoParaDia(p.dataLancamento);
+    diasAbertos[dia] = true;
+  });
+
   renderizarTabela();
   atualizarDashboard();
 };
@@ -1909,4 +1898,3 @@ window.entrarRelatorio = async function(tipo) {
 
   await carregarProcessos();
 };
-
