@@ -141,11 +141,7 @@
     oninput="renderizarTabela()"
   />
 
-  <input
-    id="filtroData"
-    type="date"
-    onchange="renderizarTabela()"
-  />
+  <input id="filtroData" type="hidden" />
 
   <select id="tipoRelatorio" onchange="atualizarOpcoesRelatorio()">
     <option value="todos">Todos os Processos</option>
@@ -160,11 +156,6 @@
   <select id="valorRelatorioSelect">
     <option value="">Todos os Processos</option>
   </select>
-
-  <button onclick="mostrarPreviaRelatorio()">👁️ Prévia</button>
-  <button onclick="carregarProcessos()">🔄 Ver Tudo</button>
-  <button onclick="exportarExcel()">📊 Excel</button>
-  <button onclick="exportarPDF()">📄 PDF</button>
 
 </section>
 
@@ -296,12 +287,16 @@
         <div class="icone-relatorio">🌎</div>
         <h2>Relatório outras cidades</h2>
         <span>Processos de outras cidades</span>
-     
-       </div>
+      </div>
 
-</body>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
 
+</body>
 </html>
+
 
