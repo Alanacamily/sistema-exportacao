@@ -25,6 +25,14 @@
       <p>Controle de Processos de Exportação</p>
     </div>
 
+    <button
+    id="btnBackup"
+     onclick="baixarBackupLocal()"
+    style="display:none;"
+   >
+    📥 Backup Completo
+   </button>
+
     <button onclick="voltarEscolhaRelatorio()">
    🔁 Trocar Relatório
    </button>
@@ -225,10 +233,6 @@
     </div>
   </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <script src="app.js"></script>
-
    <div id="modalAuditoria" class="modal">
    <div class="modal-content">
 
@@ -298,5 +302,3 @@
 
 </body>
 </html>
-
-
