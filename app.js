@@ -331,9 +331,57 @@ function renderizarTabela() {
 
   tbody.innerHTML = "";
 
+  const thead = document.querySelector(".table-box thead tr");
+
+  if (tipoRelatorioAtual === "fora") {
+    thead.innerHTML = `
+      <th>Exportador</th>
+      <th>CNPJ</th>
+      <th>Observação</th>
+      <th>País</th>
+      <th>Transporte</th>
+      <th>CRT</th>
+      <th>Fatura</th>
+      <th>DUE</th>
+      <th>Desembaraço</th>
+      <th>Parceiro</th>
+      <th>Produto</th>
+      <th>Veic.</th>
+      <th>Peso</th>
+      <th>DU-E</th>
+      <th>C.O</th>
+      <th>LPCO</th>
+      <th>Financeiro</th>
+      <th>Data</th>
+      <th>Ações</th>
+    `;
+  } else {
+    thead.innerHTML = `
+      <th>Empresa</th>
+      <th>CNPJ</th>
+      <th>Qtd</th>
+      <th>Liberado</th>
+      <th>C.R.T</th>
+      <th>Mercadoria</th>
+      <th>Fatura</th>
+      <th>Observações Multilog</th>
+      <th>Veículo</th>
+      <th>Transporte</th>
+      <th>Peso Líquido</th>
+      <th>Parceiro</th>
+      <th>DU-E</th>
+      <th>Responsável DU-E</th>
+      <th>Responsável C.O</th>
+      <th>LPCO</th>
+      <th>Financeiro</th>
+      <th>Data</th>
+      <th>Ações</th>
+    `;
+  }
+
   let ultimoDiaRenderizado = "";
 
-   processos.forEach(function(p, index) {
+  processos.forEach(function(p, index) {
     const textoBusca = `
       ${p.empresa || ""}
       ${p.cnpj || ""}
@@ -909,7 +957,7 @@ function exportarPDF() {
   const tipo = document.getElementById("tipoRelatorio").value;
   const valor = document.getElementById("valorRelatorioSelect").value.trim().toLowerCase();
 
-  let processosExportar = [...processos];
+  let processosExportar = obterProcessosRelatorio();
 
   if (tipo !== "todos" && valor) {
     processosExportar = processosExportar.filter(function(p) {
@@ -1680,7 +1728,36 @@ function obterProcessosRelatorio() {
     .trim()
     .toLowerCase();
 
+  const busca = document.getElementById("busca").value.toLowerCase();
+  const filtroData = document.getElementById("filtroData").value;
+
   let lista = [...processos];
+
+  if (busca) {
+    lista = lista.filter(function(p) {
+      const textoBusca = `
+        ${p.empresa || ""}
+        ${p.cnpj || ""}
+        ${p.fatura || ""}
+        ${p.numeroDue || ""}
+        ${p.crt || ""}
+        ${p.numeroVeiculo || ""}
+        ${p.mercadoria || ""}
+        ${p.parceiro || ""}
+      `.toLowerCase();
+
+      return textoBusca.includes(busca);
+    });
+  }
+
+  if (filtroData) {
+    lista = lista.filter(function(p) {
+      return (
+        p.dataAverbacao === filtroData ||
+        converterLancamentoParaDataInput(p.dataLancamento) === filtroData
+      );
+    });
+  }
 
   if (tipo !== "todos" && valor) {
     lista = lista.filter(function(p) {
@@ -1723,22 +1800,110 @@ window.mostrarPreviaRelatorio = function() {
     return;
   }
 
-  const processosOriginais = processos;
-
   processos = lista;
   renderizarTabela();
+  atualizarDashboard();
+};
 
-  processos = processosOriginais;
+window.limparFiltrosRelatorio = function() {
+  const busca = document.getElementById("busca");
+  const filtroData = document.getElementById("filtroData");
+  const tipo = document.getElementById("tipoRelatorio");
+  const valor = document.getElementById("valorRelatorioSelect");
+
+  if (busca) busca.value = "";
+  if (filtroData) filtroData.value = "";
+
+  if (tipo) tipo.value = "todos";
+
+  if (valor) {
+    valor.innerHTML = '<option value="">Todos os Processos</option>';
+  }
+
+  diaSelecionadoExportacao = null;
+
+  carregarProcessos();
 };
 
 window.voltarEscolhaRelatorio = function() {
   tipoRelatorioAtual = null;
   processos = [];
+  diaSelecionadoExportacao = null;
 
-  document.getElementById("telaEscolhaRelatorio").style.display = "flex";
+  const telaEscolha = document.getElementById("telaEscolhaRelatorio");
+
+  if (telaEscolha) {
+    telaEscolha.style.display = "flex";
+  }
 
   const tbody = document.getElementById("tabelaProcessos");
   if (tbody) {
     tbody.innerHTML = "";
   }
+
+  window.limparFiltrosRelatorio();
+};
+
+function montarFormularioFoz() {
+  document.querySelector(".grid").innerHTML = `
+    <input id="empresa" placeholder="Empresa" />
+    <input id="cnpj" placeholder="CNPJ" />
+    <input id="quantidade" type="number" placeholder="Qtd. Veículos" />
+    <input id="dataAverbacao" type="date" />
+    <input id="crt" placeholder="CRT" />
+    <input id="mercadoria" placeholder="Mercadoria" />
+    <input id="fatura" placeholder="Fatura" />
+    <input id="observacao" placeholder="Observação Multilog" />
+    <input id="numeroVeiculo" placeholder="Número do Veículo" />
+    <input id="transporte" placeholder="Transporte" />
+    <input id="pesoLiquido" type="number" step="0.01" placeholder="Peso Líquido" />
+    <input id="numeroDue" placeholder="Número da DUE" />
+    <input id="lpco" placeholder="LPCO" />
+    <input id="parceiro" placeholder="Parceiro" />
+    <input id="pais" type="hidden" />
+    <input id="desembaraco" type="hidden" />
+  `;
+}
+
+function montarFormularioFora() {
+  document.querySelector(".grid").innerHTML = `
+    <input id="empresa" placeholder="Empresa" />
+    <input id="cnpj" placeholder="CNPJ" />
+    <input id="observacao" placeholder="Observação" />
+    <input id="pais" placeholder="País" />
+    <input id="transporte" placeholder="Transporte" />
+    <input id="crt" placeholder="CRT" />
+    <input id="fatura" placeholder="Fatura" />
+    <input id="numeroDue" placeholder="Número da DUE" />
+    <input id="desembaraco" placeholder="Desembaraço" />
+    <input id="parceiro" placeholder="Parceiro" />
+    <input id="mercadoria" placeholder="Produto" />
+    <input id="quantidade" type="number" placeholder="Veic." />
+    <input id="pesoLiquido" type="number" step="0.01" placeholder="Peso" />
+    <input id="lpco" placeholder="LPCO" />
+    <input id="dataAverbacao" type="hidden" />
+    <input id="numeroVeiculo" type="hidden" />
+  `;
+}
+
+window.entrarRelatorio = async function(tipo) {
+  tipoRelatorioAtual = tipo;
+
+  if (tipo === "fora") {
+    montarFormularioFora();
+  } else {
+    montarFormularioFoz();
+  }
+
+  document.getElementById("telaEscolhaRelatorio").style.display = "none";
+
+  const titulo = document.querySelector(".topbar h1");
+  if (titulo) {
+    titulo.innerText =
+      tipo === "foz"
+        ? "📍 Export System • Relatório Foz"
+        : "🌎 Export System • Relatório Fora de Foz";
+  }
+
+  await carregarProcessos();
 };
