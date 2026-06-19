@@ -138,6 +138,7 @@ window.salvarProcesso = async function () {
   const numeroDue = valor("numeroDue").trim();
   const lpco = valor("lpco").trim();
   const parceiro = valor("parceiro").trim();
+  const dataLancamentoManual = document.getElementById("dataLancamentoManual")?.value || "";
   const aduanaIntegrada =
 
     document.getElementById("aduanaIntegrada").checked;
@@ -151,6 +152,14 @@ window.salvarProcesso = async function () {
    empresa: empresa,
    cnpj: cnpj,
    fatura: fatura,
+
+  data_lancamento: dataLancamentoManual
+  ? dataLancamentoManual
+  : editandoIndex === null
+    ? new Date().toISOString()
+    : processos[editandoIndex].dataLancamento,
+
+
    tipo_relatorio: tipoRelatorioAtual || "foz",
    pais: tipoRelatorioAtual === "fora" ? pais : null,
    desembaraco: tipoRelatorioAtual === "fora" ? desembaraco : null,
@@ -230,6 +239,7 @@ await registrarHistorico(
 );
 
 limparFormulario();
+"dataLancamentoManual"
 
 await carregarProcessos();
 await criarBackupAutomatico();
@@ -324,6 +334,14 @@ function formatarDataLancamentoParaDia(dataLancamento) {
   }
 
   return String(dataLancamento).split(",")[0];
+}
+
+function formatarPeso(valor) {
+  if (!valor) {
+    return "-";
+  }
+
+  return String(valor);
 }
 
 function renderizarTabela() {
@@ -496,7 +514,7 @@ if (p.aduanaIntegrada) {
     </td>
 
     <td></td>
-   <td>${p.pesoLiquido || ""}</td>
+   <td>${formatarPeso(p.pesoLiquido)}</td>
    <td>${p.parceiro || ""}</td>
    <td>${p.numeroDue || ""}</td>
     <td>${p.responsavelDue === "Exacta" ? "X" : "-"}</td>
@@ -520,7 +538,7 @@ if (p.aduanaIntegrada) {
     <td>${p.observacao || ""}</td>
     <td>${p.numeroVeiculo || ""}</td>
     <td>${p.transporte || ""}</td>
-    <td>${p.pesoLiquido || ""}</td>
+    <td>${formatarPeso(p.pesoLiquido)}</td>
     <td>${p.parceiro || "-"}</td>
     <td>${p.numeroDue || "-"}</td>
     <td>${p.responsavelDue || "-"}</td>
@@ -591,6 +609,17 @@ window.editarProcesso = function(index) {
   document.getElementById("parceiro").value = p.parceiro || "";
   document.getElementById("numeroDue").value = p.numeroDue || "";
   document.getElementById("lpco").value = p.lpco || "";
+
+
+const campoDataLancamento = document.getElementById("dataLancamentoManual");
+
+if (campoDataLancamento) {
+  campoDataLancamento.value = p.dataLancamento
+    ? new Date(p.dataLancamento).toISOString().slice(0, 16)
+    : "";
+
+  campoDataLancamento.disabled = nivelUsuario === "financeiro";
+}
 
   // NOVOS CAMPOS DO RELATÓRIO FORA
   const campoPais = document.getElementById("pais");
@@ -1080,45 +1109,45 @@ function exportarPDF() {
     }
 
     function adicionarProcessoPDF(p) {
-      if (relatorioFora) {
-        corpoDia.push([
-          p.empresa || "",
-          p.cnpj || "",
-          p.observacao || "-",
-          p.pais || "-",
-          p.transporte || "-",
-          p.crt || "-",
-          p.fatura || "-",
-          p.numeroDue || "-",
-          p.desembaraco || "-",
-          p.parceiro || "-",
-          p.mercadoria || "-",
-          p.quantidade || "-",
-          p.pesoLiquido || "-",
-          p.responsavelDue || "-",
-          p.responsavelCo || "-",
-          p.lpco || "-"
-        ]);
-        return;
-      }
+  if (relatorioFora) {
+    corpoDia.push([
+      p.empresa || "",
+      p.cnpj || "",
+      p.observacao || "-",
+      p.pais || "-",
+      p.transporte || "-",
+      p.crt || "-",
+      p.fatura || "-",
+      p.numeroDue || "-",
+      p.desembaraco || "-",
+      p.parceiro || "-",
+      p.mercadoria || "-",
+      p.quantidade || "-",
+      formatarPeso(p.pesoLiquido) || "-",
+      p.responsavelDue || "-",
+      p.responsavelCo || "-",
+      p.lpco || "-"
+    ]);
+    return;
+  }
 
-      corpoDia.push([
-        p.empresa || "",
-        p.cnpj || "",
-        p.quantidade || "-",
-        formatarData(p.dataAverbacao) || "-",
-        p.crt || "-",
-        p.mercadoria || "-",
-        p.fatura || "-",
-        p.observacao || "-",
-        p.pesoLiquido || "-",
-        p.parceiro || "-",
-        p.numeroDue || "-",
-        p.responsavelDue || "-",
-        p.responsavelCo || "-",
-        p.lpco || "-"
-      ]);
-    }
+  corpoDia.push([
+    p.empresa || "",
+    p.cnpj || "",
+    p.quantidade || "-",
+    formatarData(p.dataAverbacao) || "-",
+    p.crt || "-",
+    p.mercadoria || "-",
+    p.fatura || "-",
+    p.observacao || "-",
+    formatarPeso(p.pesoLiquido) || "-",
+    p.parceiro || "-",
+    p.numeroDue || "-",
+    p.responsavelDue || "-",
+    p.responsavelCo || "-",
+    p.lpco || "-"
+  ]);
+}
 
     const normais = ordenarPorEmpresa(
       processosDoDia.filter(function(p) {
@@ -1708,22 +1737,27 @@ window.fecharAuditoria = function() {
 };
 
 
- function montarFormularioFoz() {
+function montarFormularioFoz() {
   document.querySelector(".grid").innerHTML = `
     <input id="empresa" placeholder="Empresa" />
     <input id="cnpj" placeholder="CNPJ" />
     <input id="quantidade" type="number" placeholder="Qtd. Veículos" />
     <input id="dataAverbacao" type="date" />
+
     <input id="crt" placeholder="CRT" />
     <input id="mercadoria" placeholder="Mercadoria" />
     <input id="fatura" placeholder="Fatura" />
+
     <input id="observacao" placeholder="Observação Multilog" />
     <input id="numeroVeiculo" placeholder="Número do Veículo" />
     <input id="transporte" placeholder="Transporte" />
-    <input id="pesoLiquido" type="number" step="0.01" placeholder="Peso Líquido" />
+    <input id="pesoLiquido" type="text" placeholder="Peso Líquido" />
+
     <input id="numeroDue" placeholder="Número da DUE" />
     <input id="lpco" placeholder="LPCO" />
     <input id="parceiro" placeholder="Parceiro" />
+    <input id="dataLancamentoManual" type="datetime-local" title="Data de Lançamento" />
+
     <input id="pais" type="hidden" />
     <input id="desembaraco" type="hidden" />
   `;
@@ -1735,16 +1769,21 @@ function montarFormularioFora() {
     <input id="cnpj" placeholder="CNPJ" />
     <input id="observacao" placeholder="Observação" />
     <input id="pais" placeholder="País" />
+
     <input id="transporte" placeholder="Transporte" />
     <input id="crt" placeholder="CRT" />
     <input id="fatura" placeholder="Fatura" />
+
     <input id="numeroDue" placeholder="Número da DUE" />
     <input id="desembaraco" placeholder="Desembaraço" />
     <input id="parceiro" placeholder="Parceiro" />
     <input id="mercadoria" placeholder="Produto" />
+
     <input id="quantidade" type="number" placeholder="Veic." />
-    <input id="pesoLiquido" type="number" step="0.01" placeholder="Peso" />
+    <input id="pesoLiquido" type="text" placeholder="Peso" />
     <input id="lpco" placeholder="LPCO" />
+    <input id="dataLancamentoManual" type="datetime-local" title="Data de Lançamento" />
+
     <input id="dataAverbacao" type="hidden" />
     <input id="numeroVeiculo" type="hidden" />
   `;
@@ -1912,16 +1951,20 @@ function montarFormularioFoz() {
     <input id="cnpj" placeholder="CNPJ" />
     <input id="quantidade" type="number" placeholder="Qtd. Veículos" />
     <input id="dataAverbacao" type="date" />
+
     <input id="crt" placeholder="CRT" />
     <input id="mercadoria" placeholder="Mercadoria" />
     <input id="fatura" placeholder="Fatura" />
     <input id="observacao" placeholder="Observação Multilog" />
+
     <input id="numeroVeiculo" placeholder="Número do Veículo" />
     <input id="transporte" placeholder="Transporte" />
-    <input id="pesoLiquido" type="number" step="0.01" placeholder="Peso Líquido" />
+    <input id="pesoLiquido" type="text" placeholder="Peso Líquido" />
     <input id="numeroDue" placeholder="Número da DUE" />
+
     <input id="lpco" placeholder="LPCO" />
     <input id="parceiro" placeholder="Parceiro" />
+    <input id="dataLancamentoManual" type="datetime-local" title="Data de Lançamento" />
     <input id="pais" type="hidden" />
     <input id="desembaraco" type="hidden" />
   `;
@@ -1932,17 +1975,22 @@ function montarFormularioFora() {
     <input id="empresa" placeholder="Empresa" />
     <input id="cnpj" placeholder="CNPJ" />
     <input id="observacao" placeholder="Observação" />
+
     <input id="pais" placeholder="País" />
     <input id="transporte" placeholder="Transporte" />
     <input id="crt" placeholder="CRT" />
     <input id="fatura" placeholder="Fatura" />
+
     <input id="numeroDue" placeholder="Número da DUE" />
     <input id="desembaraco" placeholder="Desembaraço" />
     <input id="parceiro" placeholder="Parceiro" />
     <input id="mercadoria" placeholder="Produto" />
+
     <input id="quantidade" type="number" placeholder="Veic." />
-    <input id="pesoLiquido" type="number" step="0.01" placeholder="Peso" />
+    <input id="pesoLiquido" type="text" placeholder="Peso" />
     <input id="lpco" placeholder="LPCO" />
+    <input id="dataLancamentoManual" type="datetime-local" title="Data de Lançamento" />
+
     <input id="dataAverbacao" type="hidden" />
     <input id="numeroVeiculo" type="hidden" />
   `;
