@@ -341,7 +341,40 @@ function formatarPeso(valor) {
     return "-";
   }
 
-  return String(valor);
+  let texto = String(valor).trim();
+
+  if (texto.includes(",")) {
+    const partes = texto.split(",");
+    const inteiro = Number(partes[0].replace(/\./g, ""));
+
+    if (isNaN(inteiro)) {
+      return texto;
+    }
+
+    const decimal = (partes[1] || "").padEnd(4, "0").slice(0, 4);
+
+    return inteiro.toLocaleString("pt-BR") + "," + decimal;
+  }
+
+  const numero = Number(texto);
+
+  if (isNaN(numero)) {
+    return texto;
+  }
+
+  if (numero < 1000 && texto.includes(".")) {
+    const corrigido = numero * 1000;
+
+    return corrigido.toLocaleString("pt-BR", {
+      minimumFractionDigits: 4,
+      maximumFractionDigits: 4
+    });
+  }
+
+  return numero.toLocaleString("pt-BR", {
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4
+  });
 }
 
 function renderizarTabela() {
