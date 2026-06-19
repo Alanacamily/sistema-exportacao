@@ -1,4 +1,4 @@
-  console.log("APP.JS CARREGOU")
+    console.log("APP.JS CARREGOU")
   console.log("Supabase conectado")
 
 const SUPABASE_URL = "https://ayekrvnqjtmpvjtrwqnd.supabase.co";
@@ -134,7 +134,7 @@ window.salvarProcesso = async function () {
   const observacao = valor("observacao").trim();
   const numeroVeiculo = valor("numeroVeiculo").trim();
   const transporte = valor("transporte").trim();
-  const pesoLiquido = valor("pesoLiquido");
+  const pesoLiquido = valor("pesoLiquido").trim();
   const numeroDue = valor("numeroDue").trim();
   const lpco = valor("lpco").trim();
   const parceiro = valor("parceiro").trim();
@@ -2059,46 +2059,45 @@ window.baixarBackupLocal = function() {
     return;
   }
 
- const dados = processosBackup.map(function(p) {
+  const dados = processosBackup.map(function(p) {
+    if ((p.tipoRelatorio || tipoRelatorioAtual) === "fora") {
+      return {
+        Exportador: p.empresa || "",
+        CNPJ: p.cnpj || "",
+        Observação: p.observacao || "",
+        País: p.pais || "",
+        Transporte: p.transporte || "",
+        CRT: p.crt || "",
+        Fatura: p.fatura || "",
+        DUE: p.numeroDue || "",
+        Desembaraço: p.desembaraco || "",
+        Parceiro: p.parceiro || "",
+        Produto: p.mercadoria || "",
+        Veic: p.quantidade || "",
+        Peso: formatarPeso(p.pesoLiquido),
+        "Resp. DU-E": p.responsavelDue || "-",
+        "Resp. C.O": p.responsavelCo || "-",
+        LPCO: p.lpco || "-"
+      };
+    }
 
-  if ((p.tipoRelatorio || tipoRelatorioAtual) === "fora") {
     return {
-      Exportador: p.empresa || "",
+      Empresa: p.empresa || "",
       CNPJ: p.cnpj || "",
-      Observação: p.observacao || "",
-      País: p.pais || "",
-      Transporte: p.transporte || "",
+      Qtd: p.quantidade || "",
+      Liberado: formatarData(p.dataAverbacao),
       CRT: p.crt || "",
+      Mercadoria: p.mercadoria || "",
       Fatura: p.fatura || "",
-      DUE: p.numeroDue || "",
-      Desembaraço: p.desembaraco || "",
+      Obs: p.observacao || "",
+      Peso: formatarPeso(p.pesoLiquido),
       Parceiro: p.parceiro || "",
-      Produto: p.mercadoria || "",
-      Veic: p.quantidade || "",
-      Peso: p.pesoLiquido || "",
+      DUE: p.numeroDue || "",
       "Resp. DU-E": p.responsavelDue || "-",
       "Resp. C.O": p.responsavelCo || "-",
       LPCO: p.lpco || "-"
     };
-  }
-
-  return {
-    Empresa: p.empresa || "",
-    CNPJ: p.cnpj || "",
-    Qtd: p.quantidade || "",
-    Liberado: formatarData(p.dataAverbacao),
-    CRT: p.crt || "",
-    Mercadoria: p.mercadoria || "",
-    Fatura: p.fatura || "",
-    Obs: p.observacao || "",
-    Peso: p.pesoLiquido || "",
-    Parceiro: p.parceiro || "",
-    DUE: p.numeroDue || "",
-    "Resp. DU-E": p.responsavelDue || "-",
-    "Resp. C.O": p.responsavelCo || "-",
-    LPCO: p.lpco || "-"
-  };
-});
+  });
 
   const planilha = XLSX.utils.json_to_sheet(dados);
   const arquivo = XLSX.utils.book_new();
@@ -2106,13 +2105,6 @@ window.baixarBackupLocal = function() {
   XLSX.utils.book_append_sheet(arquivo, planilha, "Backup");
 
   XLSX.writeFile(
-
-    document.addEventListener("keydown", function(e) {
-  if (e.key === "F12") {
-    e.preventDefault();
-  }
-});
-
     arquivo,
     `backup_export_system_${dataArquivo()}.xlsx`
   );
