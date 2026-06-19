@@ -2106,6 +2106,13 @@ window.baixarBackupLocal = function() {
   XLSX.utils.book_append_sheet(arquivo, planilha, "Backup");
 
   XLSX.writeFile(
+
+    document.addEventListener("keydown", function(e) {
+  if (e.key === "F12") {
+    e.preventDefault();
+  }
+});
+
     arquivo,
     `backup_export_system_${dataArquivo()}.xlsx`
   );
