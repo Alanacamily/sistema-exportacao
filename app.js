@@ -1,4 +1,4 @@
-    console.log("APP.JS CARREGOU")
+  console.log("APP.JS CARREGOU")
   console.log("Supabase conectado")
 
 const SUPABASE_URL = "https://ayekrvnqjtmpvjtrwqnd.supabase.co";
@@ -55,24 +55,156 @@ function converterDataBR(dataBR) {
   );
 }
 
-async function carregarProcessos() {
+function preencherDatalist(idLista, valores) {
+  const lista = document.getElementById(idLista);
 
-  mostrarLoading();
+  if (!lista) return;
 
-let consulta = banco
-  .from("processos")
-  .select("*")
-  .eq("excluido", false);
+  lista.innerHTML = "";
 
-if (tipoRelatorioAtual) {
-  consulta = consulta.eq("tipo_relatorio", tipoRelatorioAtual);
+  const valoresUnicos = [...new Set(
+    valores
+      .map(function(valor) {
+        return String(valor || "").trim();
+      })
+      .filter(function(valor) {
+        return valor !== "";
+      })
+  )];
+
+  valoresUnicos.sort(function(a, b) {
+    return a.localeCompare(b, "pt-BR", { sensitivity: "base" });
+  });
+
+  valoresUnicos.forEach(function(valor) {
+    const option = document.createElement("option");
+    option.value = valor;
+    lista.appendChild(option);
+  });
 }
 
-const { data, error } = await consulta;
+async function carregarReferenciasCadastro() {
+  const resposta = await banco
+    .from("processos")
+    .select("empresa, cnpj, mercadoria, parceiro, transporte");
 
+  if (resposta.error) {
+    console.error("Erro ao carregar referências:", resposta.error);
+    return;
+  }
 
-      processos = data.map(function(p) {
-      return {
+  const referencias = resposta.data || [];
+
+  preencherDatalist("listaEmpresas", referencias.map(p => p.empresa));
+  preencherDatalist("listaCnpjs", referencias.map(p => p.cnpj));
+  preencherDatalist("listaMercadorias", referencias.map(p => p.mercadoria));
+  preencherDatalist("listaParceiros", referencias.map(p => p.parceiro));
+  preencherDatalist("listaTransportes", referencias.map(p => p.transporte));
+
+  ativarAutocomplete("empresa", referencias.map(p => p.empresa));
+}
+
+function preencherDadosEmpresa(nomeEmpresa) {
+  const processosEmpresa = processos.filter(function(p) {
+    return String(p.empresa || "").trim().toLowerCase() ===
+           String(nomeEmpresa || "").trim().toLowerCase();
+  });
+
+  if (processosEmpresa.length === 0) return;
+
+  const ultimoProcesso = processosEmpresa[processosEmpresa.length - 1];
+
+  document.getElementById("mercadoria").value =
+    ultimoProcesso.mercadoria || "";
+
+  preencherDatalist("listaCnpjs", processosEmpresa.map(p => p.cnpj || ""));
+  preencherDatalist("listaTransportes", processosEmpresa.map(p => p.transporte || ""));
+  preencherDatalist("listaParceiros", processosEmpresa.map(p => p.parceiro || ""));
+
+  document.getElementById("cnpj").value = "";
+  document.getElementById("transporte").value = "";
+  document.getElementById("parceiro").value = "";
+
+  const listaEmpresa = document.getElementById("auto_empresa");
+  if (listaEmpresa) {
+    listaEmpresa.innerHTML = "";
+    listaEmpresa.style.display = "none";
+  }
+}
+
+function ativarAutocomplete(idInput, valores) {
+  const input = document.getElementById(idInput);
+  if (!input) return;
+
+  const listaId = "auto_" + idInput;
+  let lista = document.getElementById(listaId);
+
+  if (!lista) {
+    lista = document.createElement("div");
+    lista.id = listaId;
+    lista.className = "autocomplete-lista";
+    input.parentNode.appendChild(lista);
+  }
+
+  const valoresUnicos = [...new Set(
+    valores.map(v => String(v || "").trim()).filter(v => v !== "")
+  )];
+
+  input.oninput = function() {
+    const texto = input.value.toLowerCase();
+    lista.innerHTML = "";
+    lista.style.display = "none";
+
+    if (!texto) return;
+
+    valoresUnicos
+      .filter(valor => valor.toLowerCase().includes(texto))
+      .slice(0, 10)
+      .forEach(function(valor) {
+        const item = document.createElement("div");
+        item.textContent = valor;
+
+        item.onclick = function() {
+          input.value = valor;
+          lista.innerHTML = "";
+          lista.style.display = "none";
+
+          if (idInput === "empresa") {
+            preencherDadosEmpresa(valor);
+          }
+        };
+
+        lista.appendChild(item);
+      });
+
+    if (lista.children.length > 0) {
+      lista.style.display = "block";
+    }
+  };
+}
+
+  async function carregarProcessos() {
+  mostrarLoading();
+
+  let consulta = banco
+    .from("processos")
+    .select("*")
+    .eq("excluido", false);
+
+  if (tipoRelatorioAtual) {
+    consulta = consulta.eq("tipo_relatorio", tipoRelatorioAtual);
+  }
+
+  const { data, error } = await consulta;
+
+  if (error) {
+    console.error("Erro ao carregar processos:", error);
+    esconderLoading();
+    return;
+  }
+
+  processos = data.map(function(p) {
+    return {
       id: p.id,
       empresa: p.empresa || "",
       cnpj: p.cnpj || "",
@@ -93,33 +225,34 @@ const { data, error } = await consulta;
       fracionado: p.aduana_integrada ? false : !!p.fracionado,
       parceiro: p.parceiro || "",
       pais: p.pais || "",
-     desembaraco: p.desembaraco || "",
-     tipoRelatorio: p.tipo_relatorio || "foz",
+      desembaraco: p.desembaraco || "",
+      tipoRelatorio: p.tipo_relatorio || "foz",
       financeiroCobrou: p.financeiro_cobrou || false,
       dataLancamento: p.data_lancamento || "",
       diaFinalizado: p.dia_finalizado || false
     };
   });
 
-   processos.sort(function(a, b) {
-   const dataA = converterDataBR(formatarDataLancamentoParaDia(a.dataLancamento));
-   const dataB = converterDataBR(formatarDataLancamentoParaDia(b.dataLancamento));
+  processos.sort(function(a, b) {
+    const dataA = converterDataBR(formatarDataLancamentoParaDia(a.dataLancamento));
+    const dataB = converterDataBR(formatarDataLancamentoParaDia(b.dataLancamento));
 
-   if (dataB - dataA !== 0) {
-    return dataB - dataA;
-   }
+    if (dataB - dataA !== 0) {
+      return dataB - dataA;
+    }
 
-   return (a.empresa || "").localeCompare(
-    b.empresa || "",
-    "pt-BR",
-    { sensitivity: "base" }
-   );
-   });
+    return (a.empresa || "").localeCompare(
+      b.empresa || "",
+      "pt-BR",
+      { sensitivity: "base" }
+    );
+  });
 
- renderizarTabela();
- atualizarOpcoesRelatorio();
- esconderLoading();
- }
+  renderizarTabela();
+  atualizarOpcoesRelatorio();
+  carregarReferenciasCadastro();
+  esconderLoading();
+}
 
 window.salvarProcesso = async function () {
   const pais = document.getElementById("pais")?.value.trim() || "";
@@ -239,7 +372,6 @@ await registrarHistorico(
 );
 
 limparFormulario();
-"dataLancamentoManual"
 
 await carregarProcessos();
 await criarBackupAutomatico();
@@ -1359,12 +1491,16 @@ async function verificarLogin() {
     usuarioAtual = data.session.user.email;
 
     await carregarNivelUsuario(usuarioAtual);
-ativarRealtimeProcessos();
-
+    ativarRealtimeProcessos();
 
     if (telaLogin) {
       telaLogin.style.display = "none";
     }
+
+    document.getElementById("telaEscolhaRelatorio").style.display = "flex";
+
+    tipoRelatorioAtual = null;
+    processos = [];
 
     if (usuarioLogadoEl) {
       usuarioLogadoEl.innerText = data.session.user.email;
@@ -1772,23 +1908,23 @@ window.fecharAuditoria = function() {
 
 function montarFormularioFoz() {
   document.querySelector(".grid").innerHTML = `
-    <input id="empresa" placeholder="Empresa" />
-    <input id="cnpj" placeholder="CNPJ" />
+    <input id="empresa" list="listaEmpresas" placeholder="Empresa" />
+<input id="cnpj" list="listaCnpjs" placeholder="CNPJ" />
     <input id="quantidade" type="number" placeholder="Qtd. Veículos" />
     <input id="dataAverbacao" type="date" />
 
     <input id="crt" placeholder="CRT" />
-    <input id="mercadoria" placeholder="Mercadoria" />
+   <input id="mercadoria" list="listaMercadorias" placeholder="Mercadoria" />
     <input id="fatura" placeholder="Fatura" />
 
     <input id="observacao" placeholder="Observação Multilog" />
     <input id="numeroVeiculo" placeholder="Número do Veículo" />
-    <input id="transporte" placeholder="Transporte" />
+    <input id="transporte" list="listaTransportes" placeholder="Transporte" />
     <input id="pesoLiquido" type="text" placeholder="Peso Líquido" />
 
     <input id="numeroDue" placeholder="Número da DUE" />
     <input id="lpco" placeholder="LPCO" />
-    <input id="parceiro" placeholder="Parceiro" />
+    <input id="parceiro" list="listaParceiros" placeholder="Parceiro" />
     <input id="dataLancamentoManual" type="datetime-local" title="Data de Lançamento" />
 
     <input id="pais" type="hidden" />
@@ -1798,19 +1934,19 @@ function montarFormularioFoz() {
 
 function montarFormularioFora() {
   document.querySelector(".grid").innerHTML = `
-    <input id="empresa" placeholder="Empresa" />
-    <input id="cnpj" placeholder="CNPJ" />
+ <input id="empresa" list="listaEmpresas" placeholder="Empresa" />
+<input id="cnpj" list="listaCnpjs" placeholder="CNPJ" />
     <input id="observacao" placeholder="Observação" />
     <input id="pais" placeholder="País" />
 
-    <input id="transporte" placeholder="Transporte" />
+    <input id="transporte" list="listaTransportes" placeholder="Transporte" />
     <input id="crt" placeholder="CRT" />
     <input id="fatura" placeholder="Fatura" />
 
     <input id="numeroDue" placeholder="Número da DUE" />
     <input id="desembaraco" placeholder="Desembaraço" />
-    <input id="parceiro" placeholder="Parceiro" />
-    <input id="mercadoria" placeholder="Produto" />
+   <input id="parceiro" list="listaParceiros" placeholder="Parceiro" />
+    <input id="mercadoria" list="listaMercadorias" placeholder="Mercadoria" />
 
     <input id="quantidade" type="number" placeholder="Veic." />
     <input id="pesoLiquido" type="text" placeholder="Peso" />
@@ -1978,78 +2114,6 @@ window.voltarEscolhaRelatorio = function() {
   window.limparFiltrosRelatorio();
 };
 
-function montarFormularioFoz() {
-  document.querySelector(".grid").innerHTML = `
-    <input id="empresa" placeholder="Empresa" />
-    <input id="cnpj" placeholder="CNPJ" />
-    <input id="quantidade" type="number" placeholder="Qtd. Veículos" />
-    <input id="dataAverbacao" type="date" />
-
-    <input id="crt" placeholder="CRT" />
-    <input id="mercadoria" placeholder="Mercadoria" />
-    <input id="fatura" placeholder="Fatura" />
-    <input id="observacao" placeholder="Observação Multilog" />
-
-    <input id="numeroVeiculo" placeholder="Número do Veículo" />
-    <input id="transporte" placeholder="Transporte" />
-    <input id="pesoLiquido" type="text" placeholder="Peso Líquido" />
-    <input id="numeroDue" placeholder="Número da DUE" />
-
-    <input id="lpco" placeholder="LPCO" />
-    <input id="parceiro" placeholder="Parceiro" />
-    <input id="dataLancamentoManual" type="datetime-local" title="Data de Lançamento" />
-    <input id="pais" type="hidden" />
-    <input id="desembaraco" type="hidden" />
-  `;
-}
-
-function montarFormularioFora() {
-  document.querySelector(".grid").innerHTML = `
-    <input id="empresa" placeholder="Empresa" />
-    <input id="cnpj" placeholder="CNPJ" />
-    <input id="observacao" placeholder="Observação" />
-
-    <input id="pais" placeholder="País" />
-    <input id="transporte" placeholder="Transporte" />
-    <input id="crt" placeholder="CRT" />
-    <input id="fatura" placeholder="Fatura" />
-
-    <input id="numeroDue" placeholder="Número da DUE" />
-    <input id="desembaraco" placeholder="Desembaraço" />
-    <input id="parceiro" placeholder="Parceiro" />
-    <input id="mercadoria" placeholder="Produto" />
-
-    <input id="quantidade" type="number" placeholder="Veic." />
-    <input id="pesoLiquido" type="text" placeholder="Peso" />
-    <input id="lpco" placeholder="LPCO" />
-    <input id="dataLancamentoManual" type="datetime-local" title="Data de Lançamento" />
-
-    <input id="dataAverbacao" type="hidden" />
-    <input id="numeroVeiculo" type="hidden" />
-  `;
-}
-
-window.entrarRelatorio = async function(tipo) {
-  tipoRelatorioAtual = tipo;
-
-  if (tipo === "fora") {
-    montarFormularioFora();
-  } else {
-    montarFormularioFoz();
-  }
-
-  document.getElementById("telaEscolhaRelatorio").style.display = "none";
-
-  const titulo = document.querySelector(".topbar h1");
-  if (titulo) {
-    titulo.innerText =
-      tipo === "foz"
-        ? "📍 Export System • Relatório Foz"
-        : "🌎 Export System • Relatório Fora de Foz";
-  }
-
-  await carregarProcessos();
-};
 
 window.baixarBackupLocal = function() {
   const processosBackup = [...processos];
@@ -2109,6 +2173,10 @@ window.baixarBackupLocal = function() {
     `backup_export_system_${dataArquivo()}.xlsx`
   );
 };
+
+document.addEventListener("contextmenu", function(e) {
+  e.preventDefault();
+});
 
 document.addEventListener("keydown", function(e) {
   if (
