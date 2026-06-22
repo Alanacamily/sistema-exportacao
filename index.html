@@ -93,31 +93,36 @@
     <section class="form-box">
       <h2>Novo Processo</h2>
 
-      <div class="grid">
-  <input id="empresa" placeholder="Empresa" />
-  <input id="cnpj" placeholder="CNPJ" />
+     <div class="grid">
+  <input id="empresa" list="listaEmpresas" placeholder="Empresa" />
+  <input id="cnpj" list="listaCnpjs" placeholder="CNPJ" />
   <input id="quantidade" type="number" placeholder="Qtd. Veículos" />
   <input id="dataAverbacao" type="date" />
+<input id="transporte" list="listaTransportes" placeholder="Transporte" />
+
   <input id="crt" placeholder="CRT" />
-  <input id="mercadoria" placeholder="Mercadoria" />
+  <input id="mercadoria" list="listaMercadorias" placeholder="Mercadoria" />
   <input id="fatura" placeholder="Fatura" />
-
-  <input
-    id="dataLancamentoManual"
-    type="datetime-local"
-    placeholder="Data de Lançamento"
-  />
-
   <input id="observacao" placeholder="Observação Multilog" />
+
   <input id="numeroVeiculo" placeholder="Número do Veículo" />
-  <input id="transporte" placeholder="Transporte" />
   <input id="pesoLiquido" type="text" placeholder="Peso Líquido" />
   <input id="numeroDue" placeholder="Número da DUE" />
+
   <input id="lpco" placeholder="LPCO" />
-  <input id="parceiro" placeholder="Parceiro" />
+  <input id="parceiro" list="listaParceiros" placeholder="Parceiro" />
+  <input id="dataLancamentoManual" type="datetime-local" placeholder="Data de Lançamento" />
+
   <input id="pais" class="campo-fora" placeholder="País" style="display:none;" />
   <input id="desembaraco" class="campo-fora" placeholder="Desembaraço" style="display:none;" />
 </div>
+
+<datalist id="listaEmpresas"></datalist>
+<datalist id="listaCnpjs"></datalist>
+<datalist id="listaMercadorias"></datalist>
+<datalist id="listaParceiros"></datalist>
+<datalist id="listaTransportes"></datalist>
+
 
       <select id="responsavelDue">
       <option value="Exacta">DU-E Exacta</option>
