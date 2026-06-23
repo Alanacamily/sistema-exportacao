@@ -109,16 +109,22 @@ function preencherDadosEmpresa(nomeEmpresa) {
 
   const ultimoProcesso = processosEmpresa[processosEmpresa.length - 1];
 
-  document.getElementById("mercadoria").value =
-    ultimoProcesso.mercadoria || "";
+  const campoMercadoria = document.getElementById("mercadoria");
+  const campoCnpj = document.getElementById("cnpj");
+  const campoTransporte = document.getElementById("transporte");
+  const campoParceiro = document.getElementById("parceiro");
+
+  if (campoMercadoria) {
+    campoMercadoria.value = ultimoProcesso.mercadoria || "";
+  }
 
   preencherDatalist("listaCnpjs", processosEmpresa.map(p => p.cnpj || ""));
   preencherDatalist("listaTransportes", processosEmpresa.map(p => p.transporte || ""));
   preencherDatalist("listaParceiros", processosEmpresa.map(p => p.parceiro || ""));
 
-  document.getElementById("cnpj").value = "";
-  document.getElementById("transporte").value = "";
-  document.getElementById("parceiro").value = "";
+  if (campoCnpj) campoCnpj.value = "";
+  if (campoTransporte) campoTransporte.value = "";
+  if (campoParceiro) campoParceiro.value = "";
 
   const listaEmpresa = document.getElementById("auto_empresa");
   if (listaEmpresa) {
@@ -1927,8 +1933,8 @@ function montarFormularioFoz() {
 
 function montarFormularioFora() {
   document.querySelector(".grid").innerHTML = `
- <input id="empresa" list="listaEmpresas" placeholder="Empresa" />
-<input id="cnpj" list="listaCnpjs" placeholder="CNPJ" />
+    <input id="empresa" list="listaEmpresas" placeholder="Empresa" />
+    <input id="cnpj" list="listaCnpjs" placeholder="CNPJ" />
     <input id="observacao" placeholder="Observação" />
     <input id="pais" placeholder="País" />
 
@@ -1938,7 +1944,7 @@ function montarFormularioFora() {
 
     <input id="numeroDue" placeholder="Número da DUE" />
     <input id="desembaraco" placeholder="Desembaraço" />
-   <input id="parceiro" list="listaParceiros" placeholder="Parceiro" />
+    <input id="parceiro" list="listaParceiros" placeholder="Parceiro" />
     <input id="mercadoria" list="listaMercadorias" placeholder="Mercadoria" />
 
     <input id="quantidade" type="number" placeholder="Veic." />
@@ -1976,6 +1982,8 @@ window.entrarRelatorio = async function(tipo) {
   }
 
   await carregarProcessos();
+  await carregarProcessos();
+await carregarReferenciasCadastro();
 };  
 
 function obterProcessosRelatorio() {
