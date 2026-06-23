@@ -183,22 +183,32 @@ function ativarAutocomplete(idInput, valores) {
   };
 }
 
-  async function carregarProcessos() {
+async function carregarProcessos() {
   mostrarLoading();
 
-  let consulta = banco
-    .from("processos")
-    .select("*")
-    .eq("excluido", false);
+  const { data: sessao } = await banco.auth.getSession();
 
-  if (tipoRelatorioAtual) {
-    consulta = consulta.eq("tipo_relatorio", tipoRelatorioAtual);
+  if (!sessao || !sessao.session) {
+    alert("Sessão expirada. Faça login novamente.");
+    esconderLoading();
+    return;
   }
 
-  const { data, error } = await consulta;
+  const url = tipoRelatorioAtual
+    ? `/api/processos?tipo=${tipoRelatorioAtual}`
+    : "/api/processos";
 
-  if (error) {
-    console.error("Erro ao carregar processos:", error);
+  const resposta = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${sessao.session.access_token}`
+    }
+  });
+
+  const data = await resposta.json();
+
+  if (!resposta.ok) {
+    console.error("Erro ao carregar processos pela API:", data);
+    alert("Erro ao carregar processos.");
     esconderLoading();
     return;
   }
