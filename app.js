@@ -1,5 +1,3 @@
-
-
 const SUPABASE_URL = "https://ayekrvnqjtmpvjtrwqnd.supabase.co";
 const SUPABASE_KEY = "sb_publishable_e9EC0WSIoq3ISWipVj1TTA_a_ZG1Bz0";
 
@@ -7,8 +5,6 @@ const banco = supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
-
-
 
 let processos = [];
 let lixeira = [];
@@ -330,55 +326,52 @@ financeiro_cobrou: editandoIndex === null
 usuario_lancamento: usuarioAtual || "Usuário não identificado"
 };
 
-   const { data: sessao } = await banco.auth.getSession();
 
-if (!sessao || !sessao.session) {
-  alert("Sessão expirada. Faça login novamente.");
-  return;
-}
+  if (editandoIndex === null) {
+    const { error } = await banco
+      .from("processos")
+      .insert([processo]);
 
-const resposta = await fetch("/api/salvar-processo", {
-  method: editandoIndex === null ? "POST" : "PUT",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${sessao.session.access_token}`
-  },
-  body: JSON.stringify({
-    id: editandoIndex === null ? null : processos[editandoIndex].id,
-    processo: processo
-  })
-});
+    if (error) {
+      console.error("Erro ao salvar:", error);
+      alert("Erro ao salvar processo.");
+      return;
+    }
 
-const resultado = await resposta.json();
+    alert("Processo salvo com sucesso!");
+  } else {
+    const id = processos[editandoIndex].id;
 
-if (!resposta.ok) {
-  console.error("Erro ao salvar pela API:", resultado);
-  alert(resultado.error || "Erro ao salvar processo.");
-  return;
-}
+    const { error } = await banco
+      .from("processos")
+      .update(processo)
+      .eq("id", id);
 
-alert(editandoIndex === null
-  ? "Processo salvo com sucesso!"
-  : "Processo atualizado com sucesso!"
-);
+    if (error) {
+      console.error("Erro ao atualizar:", error);
+      alert("Erro ao atualizar processo.");
+      return;
+    }
 
-editandoIndex = null;
-document.getElementById("btnSalvar").innerText = "Salvar Processo";
+    alert("Processo atualizado com sucesso!");
 
-await registrarHistorico(
-  editandoIndex === null ? "Processo criado" : "Processo editado",
-  {
-    id: editandoIndex === null ? null : processos[editandoIndex].id,
-    empresa: empresa,
-    fatura: fatura
+    editandoIndex = null;
+    document.getElementById("btnSalvar").innerText = "Salvar Processo";
   }
-);
 
-limparFormulario();
+  await registrarHistorico(
+    editandoIndex === null ? "Processo criado" : "Processo editado",
+    {
+      id: editandoIndex === null ? null : processos[editandoIndex].id,
+      empresa: empresa,
+      fatura: fatura
+    }
+  );
 
-await carregarProcessos();
-await criarBackupAutomatico();
+  limparFormulario();
 
+  await carregarProcessos();
+  await criarBackupAutomatico();
 };
 
 function limparFormulario() {
