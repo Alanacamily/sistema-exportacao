@@ -183,7 +183,7 @@ function ativarAutocomplete(idInput, valores) {
   };
 }
 
-async function carregarProcessos() {
+  async function carregarProcessos() {
   mostrarLoading();
 
   const { data: sessao } = await banco.auth.getSession();
@@ -340,37 +340,40 @@ financeiro_cobrou: editandoIndex === null
 usuario_lancamento: usuarioAtual || "Usuário não identificado"
 };
 
-   if (editandoIndex === null) {
-    const { error } = await banco
-      .from("processos")
-      .insert([processo]);
+   const { data: sessao } = await banco.auth.getSession();
 
-    if (error) {
-      console.error("Erro ao salvar:", error);
-      alert("Erro ao salvar processo.");
-      return;
-    }
+if (!sessao || !sessao.session) {
+  alert("Sessão expirada. Faça login novamente.");
+  return;
+}
 
-    alert("Processo salvo com sucesso!");
-  } else {
-    const id = processos[editandoIndex].id;
+const resposta = await fetch("/api/salvar-processo", {
+  method: editandoIndex === null ? "POST" : "PUT",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${sessao.session.access_token}`
+  },
+  body: JSON.stringify({
+    id: editandoIndex === null ? null : processos[editandoIndex].id,
+    processo: processo
+  })
+});
 
-    const { error } = await banco
-      .from("processos")
-      .update(processo)
-      .eq("id", id);
+const resultado = await resposta.json();
 
-    if (error) {
-      console.error("Erro ao atualizar:", error);
-      alert("Erro ao atualizar processo.");
-      return;
-    }
+if (!resposta.ok) {
+  console.error("Erro ao salvar pela API:", resultado);
+  alert(resultado.error || "Erro ao salvar processo.");
+  return;
+}
 
-    alert("Processo atualizado com sucesso!");
+alert(editandoIndex === null
+  ? "Processo salvo com sucesso!"
+  : "Processo atualizado com sucesso!"
+);
 
-    editandoIndex = null;
-    document.getElementById("btnSalvar").innerText = "Salvar Processo";
-  }
+editandoIndex = null;
+document.getElementById("btnSalvar").innerText = "Salvar Processo";
 
 await registrarHistorico(
   editandoIndex === null ? "Processo criado" : "Processo editado",
