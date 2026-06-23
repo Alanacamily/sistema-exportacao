@@ -99,11 +99,19 @@ async function carregarReferenciasCadastro() {
   ativarAutocomplete("empresa", referencias.map(p => p.empresa));
 }
 
-function preencherDadosEmpresa(nomeEmpresa) {
-  const processosEmpresa = processos.filter(function(p) {
-    return String(p.empresa || "").trim().toLowerCase() ===
-           String(nomeEmpresa || "").trim().toLowerCase();
-  });
+async function preencherDadosEmpresa(nomeEmpresa) {
+  const { data, error } = await banco
+    .from("processos")
+    .select("empresa, cnpj, mercadoria, parceiro, transporte")
+    .eq("excluido", false)
+    .ilike("empresa", nomeEmpresa);
+
+  if (error) {
+    console.error("Erro ao buscar dados da empresa:", error);
+    return;
+  }
+
+  const processosEmpresa = data || [];
 
   if (processosEmpresa.length === 0) return;
 
@@ -135,6 +143,7 @@ function preencherDadosEmpresa(nomeEmpresa) {
 
 function ativarAutocomplete(idInput, valores) {
   const input = document.getElementById(idInput);
+
   if (!input) return;
 
   const listaId = "auto_" + idInput;
@@ -153,6 +162,7 @@ function ativarAutocomplete(idInput, valores) {
 
   input.oninput = function() {
     const texto = input.value.toLowerCase();
+
     lista.innerHTML = "";
     lista.style.display = "none";
 
@@ -269,7 +279,10 @@ window.salvarProcesso = async function () {
   const observacao = valor("observacao").trim();
   const numeroVeiculo = valor("numeroVeiculo").trim();
   const transporte = valor("transporte").trim();
-  const pesoLiquido = valor("pesoLiquido").trim();
+  const pesoLiquido = valor("pesoLiquido")
+  .trim()
+  .replace(/\./g, "")
+  .replace(",", ".");
   const numeroDue = valor("numeroDue").trim();
   const lpco = valor("lpco").trim();
   const parceiro = valor("parceiro").trim();
@@ -568,30 +581,59 @@ function renderizarTabela() {
 
   let ultimoDiaRenderizado = "";
 
-  processos.forEach(function(p, index) {
-    const textoBusca = `
-      ${p.empresa || ""}
-      ${p.cnpj || ""}
-      ${p.fatura || ""}
-      ${p.numeroDue || ""}
-      ${p.crt || ""}
-      ${p.numeroVeiculo || ""}
-      ${p.mercadoria || ""}
-    `.toLowerCase();
-    const passaBusca = textoBusca.includes(busca);
+const processosOrdenados = [...processos].sort(function(a, b) {
+  const dataA = converterDataBR(formatarDataLancamentoParaDia(a.dataLancamento));
+  const dataB = converterDataBR(formatarDataLancamentoParaDia(b.dataLancamento));
 
-    const passaData =
-      !filtroData ||
-      p.dataAverbacao === filtroData ||
-      converterLancamentoParaDataInput(p.dataLancamento) === filtroData;
+  if (dataB - dataA !== 0) {
+    return dataB - dataA;
+  }
 
-    if (!passaBusca || !passaData) {
-      return;
-    }
+  const fracionadoA = a.fracionado ? 1 : 0;
+  const fracionadoB = b.fracionado ? 1 : 0;
+
+  if (fracionadoA !== fracionadoB) {
+    return fracionadoA - fracionadoB;
+  }
+
+  return (a.empresa || "").localeCompare(
+    b.empresa || "",
+    "pt-BR",
+    { sensitivity: "base" }
+  );
+});
+
+   processosOrdenados.forEach(function(p) {
+  const index = processos.indexOf(p);
+
+  const textoBusca = `
+    ${p.empresa || ""}
+    ${p.cnpj || ""}
+    ${p.fatura || ""}
+    ${p.numeroDue || ""}
+    ${p.crt || ""}
+    ${p.numeroVeiculo || ""}
+    ${p.mercadoria || ""}
+    ${p.parceiro || ""}
+    ${tipoRelatorioAtual === "fora" ? (p.observacao || "") : ""}
+    ${tipoRelatorioAtual === "fora" ? (p.pais || "") : ""}
+    ${tipoRelatorioAtual === "fora" ? (p.desembaraco || "") : ""}
+  `.toLowerCase();
+
+  const passaBusca = textoBusca.includes(busca);
+
+  const passaData =
+    !filtroData ||
+    p.dataAverbacao === filtroData ||
+    converterLancamentoParaDataInput(p.dataLancamento) === filtroData;
+
+  if (!passaBusca || !passaData) {
+    return;
+  }
 
     const diaProcesso = formatarDataLancamentoParaDia(p.dataLancamento);
 
-const processosDoDia = processos.filter(function(item) {
+const processosDoDia = processosOrdenados.filter(function(item) {
   const textoBuscaDia = `
     ${item.empresa || ""}
     ${item.cnpj || ""}
@@ -631,6 +673,9 @@ if (diaProcesso !== ultimoDiaRenderizado) {
 linhaDia.innerHTML = `
   <td colspan="20" class="linha-dia">
     ${diaFinalizado ? "🔒" : "📅"} ${diaProcesso}
+    <button class="btn-lapis-dia" onclick="alterarDataDia('${diaProcesso}')" title="Alterar data de todo o dia">
+      ✏️
+    </button>
     ${diaFinalizado ? "— FINALIZADO" : ""}
     (${processosDoDia.length} processos)
 
@@ -638,20 +683,22 @@ linhaDia.innerHTML = `
       Selecionar para PDF/Excel
     </button>
 
- ${ diaFinalizado ? `
-  <button class="btn-finalizar-dia" onclick="reabrirDia('${diaProcesso}')">
-    🔓 Reabrir Dia
-  </button>
+    ${
+      diaFinalizado ? `
+        <button class="btn-finalizar-dia" onclick="reabrirDia('${diaProcesso}')">
+          🔓 Reabrir Dia
+        </button>
 
-  <button class="btn-finalizar-dia" onclick="alternarDia('${diaProcesso}')">
-    ${diaAberto ? "Ocultar" : "Mostrar"}
-  </button>
-` : `
-  <button class="btn-finalizar-dia" onclick="finalizarDia('${diaProcesso}')">
-    ✅ Finalizar Dia
-  </button>
-` }
-</td>
+        <button class="btn-finalizar-dia" onclick="alternarDia('${diaProcesso}')">
+          ${diaAberto ? "Ocultar" : "Mostrar"}
+        </button>
+      ` : `
+        <button class="btn-finalizar-dia" onclick="finalizarDia('${diaProcesso}')">
+          ✅ Finalizar Dia
+        </button>
+      `
+    }
+  </td>
 `;
 
   tbody.appendChild(linhaDia);
@@ -719,8 +766,13 @@ if (p.aduanaIntegrada) {
   `;
 }
 
-if (p.fracionado === true && p.aduanaIntegrada !== true) {
+if (
+  p.fracionado === true &&
+  p.aduanaIntegrada !== true &&
+  !tbody.querySelector(`tr[data-fracionado-dia="${diaProcesso}"]`)
+) {
   const linhaFracionado = document.createElement("tr");
+  linhaFracionado.setAttribute("data-fracionado-dia", diaProcesso);
 
   linhaFracionado.innerHTML = `
     <td colspan="20" class="linha-fracionado">
@@ -737,6 +789,80 @@ tbody.appendChild(tr);
 
   atualizarDashboard();
 }
+
+window.alterarDataDia = async function(diaProcesso) {
+  const novaDataDigitada = prompt(
+    "Digite a nova data no formato DD/MM/AAAA",
+    diaProcesso
+  );
+
+  if (!novaDataDigitada) return;
+
+  const partes = novaDataDigitada.split("/");
+
+  if (partes.length !== 3) {
+    alert("Digite a data no formato DD/MM/AAAA.");
+    return;
+  }
+
+  const novaData = `${partes[2]}-${partes[1]}-${partes[0]}`;
+
+  const processosDoDia = processos.filter(function(p) {
+    return formatarDataLancamentoParaDia(p.dataLancamento) === diaProcesso;
+  });
+
+  for (const processo of processosDoDia) {
+    const dataOriginal = processo.dataLancamento
+      ? new Date(processo.dataLancamento)
+      : new Date();
+
+    const hora = String(dataOriginal.getHours()).padStart(2, "0");
+    const minuto = String(dataOriginal.getMinutes()).padStart(2, "0");
+    const segundo = String(dataOriginal.getSeconds()).padStart(2, "0");
+
+    const novaDataCompleta = `${novaData}T${hora}:${minuto}:${segundo}`;
+
+    const { error } = await banco
+      .from("processos")
+      .update({ data_lancamento: novaDataCompleta })
+      .eq("id", processo.id);
+
+    if (error) {
+      console.error(error);
+      alert("Erro ao alterar a data dos processos deste dia.");
+      return;
+    }
+  }
+
+  alert("Data alterada com sucesso!");
+  await carregarProcessos();
+};
+
+window.alterarDataLancamento = async function(index) {
+  const processo = processos[index];
+
+  const novaData = prompt(
+    "Digite a nova data no formato AAAA-MM-DDTHH:MM",
+    processo.dataLancamento
+      ? new Date(processo.dataLancamento).toISOString().slice(0, 16)
+      : ""
+  );
+
+  if (!novaData) return;
+
+  const { error } = await banco
+    .from("processos")
+    .update({ data_lancamento: novaData })
+    .eq("id", processo.id);
+
+  if (error) {
+    alert("Erro ao alterar data.");
+    return;
+  }
+
+  alert("Data alterada com sucesso!");
+  await carregarProcessos();
+};
 
   window.selecionarDiaExportacao = function(dia) {
   diaSelecionadoExportacao = dia;
@@ -1080,17 +1206,21 @@ function dadosFiltrados() {
 
   return processos.filter(function(p) {
     const textoBusca = `
-    ${p.empresa || ""}
-    ${p.cnpj || ""}
-    ${p.fatura || ""}
-    ${p.numeroDue || ""}
-    ${p.crt || ""}
-    ${p.numeroVeiculo || ""}
-    ${p.mercadoria || ""}
-    ${p.parceiro || ""}
-   `.toLowerCase();
+      ${p.empresa || ""}
+      ${p.cnpj || ""}
+      ${p.fatura || ""}
+      ${p.numeroDue || ""}
+      ${p.crt || ""}
+      ${p.numeroVeiculo || ""}
+      ${p.mercadoria || ""}
+      ${p.parceiro || ""}
+      ${tipoRelatorioAtual === "fora" ? (p.observacao || "") : ""}
+      ${tipoRelatorioAtual === "fora" ? (p.pais || "") : ""}
+      ${tipoRelatorioAtual === "fora" ? (p.desembaraco || "") : ""}
+    `.toLowerCase();
 
     const passaBusca = textoBusca.includes(busca);
+
     const passaData =
       !filtroData ||
       p.dataAverbacao === filtroData ||
@@ -1108,48 +1238,141 @@ function exportarExcel() {
     return;
   }
 
-  const dados = processosExportar.map(function(p) {
-    if (tipoRelatorioAtual === "fora") {
-      return {
-        Exportador: p.empresa || "",
+  const relatorioFora = tipoRelatorioAtual === "fora";
+
+  const dados = [];
+
+  const dias = [...new Set(
+    processosExportar.map(function(p) {
+      return formatarDataLancamentoParaDia(p.dataLancamento);
+    })
+  )];
+
+  dias.forEach(function(dia) {
+    const processosDoDia = processosExportar.filter(function(p) {
+      return formatarDataLancamentoParaDia(p.dataLancamento) === dia;
+    });
+
+    dados.push({
+      Empresa: "DATA DE LANÇAMENTO: " + dia
+    });
+
+    function ordenar(lista) {
+      return [...lista].sort(function(a, b) {
+        return (a.empresa || "").localeCompare(
+          b.empresa || "",
+          "pt-BR",
+          { sensitivity: "base" }
+        );
+      });
+    }
+
+    const normais = ordenar(
+      processosDoDia.filter(function(p) {
+        return !p.fracionado && !p.aduanaIntegrada;
+      })
+    );
+
+    const fracionados = ordenar(
+  processosDoDia.filter(function(p) {
+    return p.fracionado && !p.aduanaIntegrada;
+  })
+);
+
+    const aduana = ordenar(
+      processosDoDia.filter(function(p) {
+        return p.aduanaIntegrada;
+      })
+    );
+
+    function adicionarTitulo(titulo) {
+      dados.push({
+        Empresa: titulo
+      });
+    }
+
+    function adicionarProcesso(p) {
+      if (relatorioFora) {
+        dados.push({
+          Exportador: p.empresa || "",
+          CNPJ: p.cnpj || "",
+          Observação: p.observacao || "",
+          País: p.pais || "",
+          Transporte: p.transporte || "",
+          CRT: p.crt || "",
+          Fatura: p.fatura || "",
+          DUE: p.numeroDue || "",
+          Desembaraço: p.desembaraco || "",
+          Parceiro: p.parceiro || "",
+          Produto: p.mercadoria || "",
+          Veic: p.quantidade || "",
+          Peso: formatarPeso(p.pesoLiquido),
+          "Resp. DU-E": p.responsavelDue || "-",
+          "Resp. C.O": p.responsavelCo || "-",
+          LPCO: p.lpco || "-"
+        });
+        return;
+      }
+
+      dados.push({
+        Empresa: p.empresa || "",
         CNPJ: p.cnpj || "",
-        Observação: p.observacao || "",
-        País: p.pais || "",
-        Transporte: p.transporte || "",
+        Qtd: p.quantidade || "",
+        Liberado: formatarData(p.dataAverbacao),
         CRT: p.crt || "",
+        Mercadoria: p.mercadoria || "",
         Fatura: p.fatura || "",
-        DUE: p.numeroDue || "",
-        Desembaraço: p.desembaraco || "",
+        Obs: p.observacao || "",
+        Veículo: p.numeroVeiculo || "",
+        Transporte: p.transporte || "",
+        Peso: formatarPeso(p.pesoLiquido),
         Parceiro: p.parceiro || "",
-        Produto: p.mercadoria || "",
-        Veic: p.quantidade || "",
-        Peso: p.pesoLiquido || "",
+        DUE: p.numeroDue || "",
         "Resp. DU-E": p.responsavelDue || "-",
         "Resp. C.O": p.responsavelCo || "-",
         LPCO: p.lpco || "-"
-      };
+      });
     }
 
-    return {
-      Empresa: p.empresa || "",
-      CNPJ: p.cnpj || "",
-      Qtd: p.quantidade || "",
-      Liberado: formatarData(p.dataAverbacao),
-      CRT: p.crt || "",
-      Mercadoria: p.mercadoria || "",
-      Fatura: p.fatura || "",
-      Obs: p.observacao || "",
-      Peso: p.pesoLiquido || "",
-      Parceiro: p.parceiro || "",
-      DUE: p.numeroDue || "",
-      "Resp. DU-E": p.responsavelDue || "-",
-      "Resp. C.O": p.responsavelCo || "-",
-      LPCO: p.lpco || "-"
-    };
+    normais.forEach(adicionarProcesso);
+
+    if (fracionados.length > 0) {
+  adicionarTitulo("FRACIONADO");
+  fracionados
+    .sort(function(a, b) {
+      return (a.empresa || "").localeCompare(
+        b.empresa || "",
+        "pt-BR",
+        { sensitivity: "base" }
+      );
+    })
+    .forEach(adicionarProcesso);
+}
+
+    if (aduana.length > 0) {
+      adicionarTitulo("ADUANA INTEGRADA");
+      aduana.forEach(adicionarProcesso);
+    }
   });
 
   const planilha = XLSX.utils.json_to_sheet(dados);
   const arquivo = XLSX.utils.book_new();
+
+  const largura = relatorioFora
+    ? [
+        { wch: 28 }, { wch: 20 }, { wch: 28 }, { wch: 18 },
+        { wch: 20 }, { wch: 18 }, { wch: 16 }, { wch: 18 },
+        { wch: 18 }, { wch: 22 }, { wch: 24 }, { wch: 10 },
+        { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 14 }
+      ]
+    : [
+        { wch: 28 }, { wch: 20 }, { wch: 10 }, { wch: 14 },
+        { wch: 18 }, { wch: 24 }, { wch: 16 }, { wch: 28 },
+        { wch: 18 }, { wch: 20 }, { wch: 16 }, { wch: 22 },
+        { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 14 }
+      ];
+
+  planilha["!cols"] = largura;
 
   XLSX.utils.book_append_sheet(arquivo, planilha, "Relatório");
 
@@ -1625,7 +1848,7 @@ window.finalizarDia = async function(dia) {
 };
 
 window.alternarDia = function(dia) {
-  diasAbertos[dia] = !diasAbertos[dia];
+  diasAbertos[dia] = diasAbertos[dia] !== true;
 
   if (diasAbertos[dia]) {
     diaSelecionadoExportacao = dia;
@@ -1997,22 +2220,22 @@ function obterProcessosRelatorio() {
 
   let lista = [...processos];
 
-  if (busca) {
-    lista = lista.filter(function(p) {
-      const textoBusca = `
-        ${p.empresa || ""}
-        ${p.cnpj || ""}
-        ${p.fatura || ""}
-        ${p.numeroDue || ""}
-        ${p.crt || ""}
-        ${p.numeroVeiculo || ""}
-        ${p.mercadoria || ""}
-        ${p.parceiro || ""}
-      `.toLowerCase();
+ if (busca) {
+  lista = lista.filter(function(p) {
+    const textoBusca = `
+      ${p.empresa || ""}
+      ${p.cnpj || ""}
+      ${p.fatura || ""}
+      ${p.numeroDue || ""}
+      ${p.crt || ""}
+      ${p.numeroVeiculo || ""}
+      ${p.mercadoria || ""}
+      ${p.parceiro || ""}
+    `.toLowerCase();
 
-      return textoBusca.includes(busca);
-    });
-  }
+    return textoBusca.includes(busca);
+  });
+}
 
   if (filtroData) {
     lista = lista.filter(function(p) {
