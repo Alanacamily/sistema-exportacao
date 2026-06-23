@@ -1,5 +1,4 @@
-  console.log("APP.JS CARREGOU")
-  console.log("Supabase conectado")
+
 
 const SUPABASE_URL = "https://ayekrvnqjtmpvjtrwqnd.supabase.co";
 const SUPABASE_KEY = "sb_publishable_e9EC0WSIoq3ISWipVj1TTA_a_ZG1Bz0";
@@ -9,7 +8,7 @@ const banco = supabase.createClient(
   SUPABASE_KEY
 );
 
-console.log("Conexão Supabase inicializada")
+
 
 let processos = [];
 let lixeira = [];
@@ -186,29 +185,20 @@ function ativarAutocomplete(idInput, valores) {
   async function carregarProcessos() {
   mostrarLoading();
 
-  const { data: sessao } = await banco.auth.getSession();
+  let consulta = banco
+    .from("processos")
+    .select("*")
+    .eq("excluido", false);
 
-  if (!sessao || !sessao.session) {
-    alert("Sessão expirada. Faça login novamente.");
-    esconderLoading();
-    return;
+  if (tipoRelatorioAtual) {
+    consulta = consulta.eq("tipo_relatorio", tipoRelatorioAtual);
   }
 
-  const url = tipoRelatorioAtual
-    ? `/api/processos?tipo=${tipoRelatorioAtual}`
-    : "/api/processos";
+  const { data, error } = await consulta;
 
-  const resposta = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${sessao.session.access_token}`
-    }
-  });
-
-  const data = await resposta.json();
-
-  if (!resposta.ok) {
-    console.error("Erro ao carregar processos pela API:", data);
-    alert("Erro ao carregar processos.");
+  if (error) {
+    console.error("Erro ao carregar processos:", error);
+    alert("Erro ao carregar processos do Supabase.");
     esconderLoading();
     return;
   }
@@ -1555,7 +1545,7 @@ async function carregarNivelUsuario(email) {
 
   nivelUsuario = data[0].nivel;
 
-  console.log("Nível do usuário:", nivelUsuario);
+  
 
   aplicarPermissoes();
 
@@ -1563,7 +1553,6 @@ async function carregarNivelUsuario(email) {
 }
 
 function aplicarPermissoes() {
-  console.log("Aplicando permissões para:", nivelUsuario);
 
   const btnAuditoria = document.getElementById("btnAuditoria");
   const btnBackup = document.getElementById("btnBackup");
@@ -1693,7 +1682,6 @@ async function baixarBackupLocal() {
 }
 
 async function registrarHistorico(acao, processo) {
-  console.log("Registrando histórico:", acao, processo);
 
   const registro = {
     usuario: usuarioAtual || "Usuário não identificado",
@@ -1734,7 +1722,6 @@ function ativarRealtimeProcessos() {
         table: "processos"
       },
       async function(payload) {
-        console.log("Alteração em tempo real:", payload);
         await carregarProcessos();
       }
     )
