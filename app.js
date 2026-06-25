@@ -279,10 +279,7 @@ window.salvarProcesso = async function () {
   const observacao = valor("observacao").trim();
   const numeroVeiculo = valor("numeroVeiculo").trim();
   const transporte = valor("transporte").trim();
-  const pesoLiquido = valor("pesoLiquido")
-  .trim()
-  .replace(/\./g, "")
-  .replace(",", ".");
+  const pesoLiquido = valor("pesoLiquido").trim();
   const numeroDue = valor("numeroDue").trim();
   const lpco = valor("lpco").trim();
   const parceiro = valor("parceiro").trim();
@@ -484,55 +481,23 @@ function formatarDataLancamentoParaDia(dataLancamento) {
 }
 
 function formatarPeso(valor) {
-  if (!valor) {
-    return "-";
+  if (valor === null || valor === undefined) {
+    return "";
   }
 
-  let texto = String(valor).trim();
-
-  if (texto.includes(",")) {
-    const partes = texto.split(",");
-    const inteiro = Number(partes[0].replace(/\./g, ""));
-
-    if (isNaN(inteiro)) {
-      return texto;
-    }
-
-    const decimal = (partes[1] || "").padEnd(4, "0").slice(0, 4);
-
-    return inteiro.toLocaleString("pt-BR") + "," + decimal;
-  }
-
-  const numero = Number(texto);
-
-  if (isNaN(numero)) {
-    return texto;
-  }
-
-  if (numero < 1000 && texto.includes(".")) {
-    const corrigido = numero * 1000;
-
-    return corrigido.toLocaleString("pt-BR", {
-      minimumFractionDigits: 4,
-      maximumFractionDigits: 4
-    });
-  }
-
-  return numero.toLocaleString("pt-BR", {
-    minimumFractionDigits: 4,
-    maximumFractionDigits: 4
-  });
+  return String(valor).trim();
 }
 
 function renderizarTabela() {
   const tbody = document.getElementById("tabelaProcessos");
-  const busca = document.getElementById("busca").value.toLowerCase();
+  const busca = document.getElementById("busca").value.toLowerCase().trim();
   const filtroData = document.getElementById("filtroData").value;
 
   tbody.innerHTML = "";
 
   const thead = document.querySelector(".table-box thead tr");
 
+  // ===== CABEÇALHO =====
   if (tipoRelatorioAtual === "fora") {
     thead.innerHTML = `
       <th>Exportador</th>
@@ -555,7 +520,8 @@ function renderizarTabela() {
       <th>Data</th>
       <th>Ações</th>
     `;
-  } else {
+  } 
+  else {
     thead.innerHTML = `
       <th>Empresa</th>
       <th>CNPJ</th>
@@ -581,210 +547,235 @@ function renderizarTabela() {
 
   let ultimoDiaRenderizado = "";
 
-const processosOrdenados = [...processos].sort(function(a, b) {
-  const dataA = converterDataBR(formatarDataLancamentoParaDia(a.dataLancamento));
-  const dataB = converterDataBR(formatarDataLancamentoParaDia(b.dataLancamento));
+  const processosOrdenados = [...processos].sort(function(a, b) {
+    const dataA = converterDataBR(formatarDataLancamentoParaDia(a.dataLancamento));
+    const dataB = converterDataBR(formatarDataLancamentoParaDia(b.dataLancamento));
 
-  if (dataB - dataA !== 0) {
-    return dataB - dataA;
-  }
+    if (dataB - dataA !== 0) {
+      return dataB - dataA;
+    }
 
-  const fracionadoA = a.fracionado ? 1 : 0;
-  const fracionadoB = b.fracionado ? 1 : 0;
+    const fracionadoA = a.fracionado ? 1 : 0;
+    const fracionadoB = b.fracionado ? 1 : 0;
 
-  if (fracionadoA !== fracionadoB) {
-    return fracionadoA - fracionadoB;
-  }
+    if (fracionadoA !== fracionadoB) {
+      return fracionadoA - fracionadoB;
+    }
 
-  return (a.empresa || "").localeCompare(
-    b.empresa || "",
-    "pt-BR",
-    { sensitivity: "base" }
-  );
-});
+    return (a.empresa || "").localeCompare(
+      b.empresa || "",
+      "pt-BR",
+      { sensitivity: "base" }
+    );
+  });
 
-   processosOrdenados.forEach(function(p) {
-  const index = processos.indexOf(p);
+  processosOrdenados.forEach(function(p) {
+    const index = processos.indexOf(p);
 
-  const textoBusca = `
-    ${p.empresa || ""}
-    ${p.cnpj || ""}
-    ${p.fatura || ""}
-    ${p.numeroDue || ""}
-    ${p.crt || ""}
-    ${p.numeroVeiculo || ""}
-    ${p.mercadoria || ""}
-    ${p.parceiro || ""}
-    ${tipoRelatorioAtual === "fora" ? (p.observacao || "") : ""}
-    ${tipoRelatorioAtual === "fora" ? (p.pais || "") : ""}
-    ${tipoRelatorioAtual === "fora" ? (p.desembaraco || "") : ""}
-  `.toLowerCase();
+    const textoBusca = `
+      ${p.empresa || ""}
+      ${p.cnpj || ""}
+      ${p.fatura || ""}
+      ${p.numeroDue || ""}
+      ${p.crt || ""}
+      ${p.numeroVeiculo || ""}
+      ${p.mercadoria || ""}
+      ${p.parceiro || ""}
+      ${tipoRelatorioAtual === "fora" ? (p.observacao || "") : ""}
+      ${tipoRelatorioAtual === "fora" ? (p.pais || "") : ""}
+      ${tipoRelatorioAtual === "fora" ? (p.desembaraco || "") : ""}
+    `.toLowerCase().trim();
 
-  const passaBusca = textoBusca.includes(busca);
+    const passaBusca = !busca || textoBusca.includes(busca);
 
-  const passaData =
-    !filtroData ||
-    p.dataAverbacao === filtroData ||
-    converterLancamentoParaDataInput(p.dataLancamento) === filtroData;
+    const passaData =
+      !filtroData ||
+      p.dataAverbacao === filtroData ||
+      converterLancamentoParaDataInput(p.dataLancamento) === filtroData;
 
-  if (!passaBusca || !passaData) {
-    return;
-  }
+    if (!passaBusca || !passaData) {
+      return;
+    }
 
     const diaProcesso = formatarDataLancamentoParaDia(p.dataLancamento);
 
-const processosDoDia = processosOrdenados.filter(function(item) {
-  const textoBuscaDia = `
-    ${item.empresa || ""}
-    ${item.cnpj || ""}
-    ${item.fatura || ""}
-    ${item.numeroDue || ""}
-    ${item.crt || ""}
-    ${item.numeroVeiculo || ""}
-    ${item.mercadoria || ""}
-    ${item.parceiro || ""}
-  `.toLowerCase();
+    const processosDoDia = processosOrdenados.filter(function(item) {
+      const textoBuscaDia = `
+        ${item.empresa || ""}
+        ${item.cnpj || ""}
+        ${item.fatura || ""}
+        ${item.numeroDue || ""}
+        ${item.crt || ""}
+        ${item.numeroVeiculo || ""}
+        ${item.mercadoria || ""}
+        ${item.parceiro || ""}
+        ${tipoRelatorioAtual === "fora" ? (item.observacao || "") : ""}
+        ${tipoRelatorioAtual === "fora" ? (item.pais || "") : ""}
+        ${tipoRelatorioAtual === "fora" ? (item.desembaraco || "") : ""}
+      `.toLowerCase().trim();
 
-  const passaBuscaDia = textoBuscaDia.includes(busca);
+      const passaBuscaDia = !busca || textoBuscaDia.includes(busca);
 
-  const passaDataDia =
-    !filtroData ||
-    item.dataAverbacao === filtroData ||
-    converterLancamentoParaDataInput(item.dataLancamento) === filtroData;
+      const passaDataDia =
+        !filtroData ||
+        item.dataAverbacao === filtroData ||
+        converterLancamentoParaDataInput(item.dataLancamento) === filtroData;
 
-  return (
-    formatarDataLancamentoParaDia(item.dataLancamento) === diaProcesso &&
-    passaBuscaDia &&
-    passaDataDia
-  );
-});
+      return (
+        formatarDataLancamentoParaDia(item.dataLancamento) === diaProcesso &&
+        passaBuscaDia &&
+        passaDataDia
+      );
+    });
 
-const diaFinalizado = processosDoDia.every(function(item) {
-  return item.diaFinalizado === true;
-});
+    const diaFinalizado = processosDoDia.every(function(item) {
+      return item.diaFinalizado === true;
+    });
 
-const diaAberto = diasAbertos[diaProcesso] === true;
+    const diaAberto = diasAbertos[diaProcesso] === true;
 
-if (diaProcesso !== ultimoDiaRenderizado) {
-  ultimoDiaRenderizado = diaProcesso;
+    if (diaProcesso !== ultimoDiaRenderizado) {
+      ultimoDiaRenderizado = diaProcesso;
 
-  const linhaDia = document.createElement("tr");
+      const linhaDia = document.createElement("tr");
 
-linhaDia.innerHTML = `
-  <td colspan="20" class="linha-dia">
-    ${diaFinalizado ? "🔒" : "📅"} ${diaProcesso}
-    <button class="btn-lapis-dia" onclick="alterarDataDia('${diaProcesso}')" title="Alterar data de todo o dia">
-      ✏️
-    </button>
-    ${diaFinalizado ? "— FINALIZADO" : ""}
-    (${processosDoDia.length} processos)
+      linhaDia.innerHTML = `
+        <td colspan="20" class="linha-dia">
+          ${diaFinalizado ? "🔒" : "📅"} ${diaProcesso}
 
-    <button onclick="selecionarDiaExportacao('${diaProcesso}')">
-      Selecionar para PDF/Excel
-    </button>
+          <button class="btn-lapis-dia" onclick="alterarDataDia('${diaProcesso}')" title="Alterar data de todo o dia">
+            ✏️
+          </button>
 
-    ${
-      diaFinalizado ? `
-        <button class="btn-finalizar-dia" onclick="reabrirDia('${diaProcesso}')">
-          🔓 Reabrir Dia
-        </button>
+          ${diaFinalizado ? "— FINALIZADO" : ""}
+          (${processosDoDia.length} processos)
 
-        <button class="btn-finalizar-dia" onclick="alternarDia('${diaProcesso}')">
-          ${diaAberto ? "Ocultar" : "Mostrar"}
-        </button>
-      ` : `
-        <button class="btn-finalizar-dia" onclick="finalizarDia('${diaProcesso}')">
-          ✅ Finalizar Dia
-        </button>
-      `
+          <button onclick="selecionarDiaExportacao('${diaProcesso}')">
+            Selecionar para PDF/Excel
+          </button>
+
+          ${
+            diaFinalizado
+              ? `
+                <button class="btn-finalizar-dia" onclick="reabrirDia('${diaProcesso}')">
+                  🔓 Reabrir Dia
+                </button>
+                <button class="btn-finalizar-dia" onclick="alternarDia('${diaProcesso}')">
+                  ${diaAberto ? "Ocultar" : "Mostrar"}
+                </button>
+              `
+              : `
+                <button class="btn-finalizar-dia" onclick="finalizarDia('${diaProcesso}')">
+                  ✅ Finalizar Dia
+                </button>
+              `
+          }
+        </td>
+      `;
+
+      tbody.appendChild(linhaDia);
     }
-  </td>
-`;
 
-  tbody.appendChild(linhaDia);
-}
+    if (diaFinalizado && !diaAberto && !busca && !filtroData) {
+      return;
+    }
 
-if (diaFinalizado && !diaAberto && !busca && !filtroData) {
-  return;
-}
+    // barra FRACIONADO só uma vez por dia
+    if (
+      p.fracionado === true &&
+      p.aduanaIntegrada !== true &&
+      !tbody.querySelector(`tr[data-fracionado-dia="${diaProcesso}"]`)
+    ) {
+      const linhaFracionado = document.createElement("tr");
+      linhaFracionado.setAttribute("data-fracionado-dia", diaProcesso);
 
-     const tr = document.createElement("tr");
+      linhaFracionado.innerHTML = `
+        <td colspan="20" class="linha-fracionado">
+          FRACIONADO
+        </td>
+      `;
 
-if (p.financeiroCobrou) {
-  tr.classList.add("cobrado");
-}
+      tbody.appendChild(linhaFracionado);
+    }
 
-if (p.aduanaIntegrada) {
-  tr.innerHTML = `
-    <td>${p.empresa || ""}</td>
-    <td>${p.cnpj || ""}</td>
+    const tr = document.createElement("tr");
 
-    <td colspan="4" class="linha-aduana">
-      LIBERAÇÃO VIA ADUANA INTEGRADA
-    </td>
+    if (p.financeiroCobrou) {
+      tr.classList.add("cobrado");
+    }
 
-    <td colspan="3">
-      FATURA: ${p.fatura || "-"}
-    </td>
+    // ===== RELATÓRIO FORA =====
+    if (tipoRelatorioAtual === "fora") {
+      tr.innerHTML = `
+        <td>${p.empresa || ""}</td>
+        <td>${p.cnpj || ""}</td>
+        <td>${p.observacao || ""}</td>
+        <td>${p.pais || ""}</td>
+        <td>${p.transporte || ""}</td>
+        <td>${p.crt || ""}</td>
+        <td>${p.fatura || ""}</td>
+        <td>${p.numeroDue || "-"}</td>
+        <td>${p.desembaraco || ""}</td>
+        <td>${p.parceiro || "-"}</td>
+        <td>${p.mercadoria || ""}</td>
+        <td>${p.quantidade || ""}</td>
+        <td>${p.pesoLiquido || ""}</td>
+        <td>${p.responsavelDue || "-"}</td>
+        <td>${p.responsavelCo || "-"}</td>
+        <td>${p.lpco || "-"}</td>
+        <td>${renderizarBotaoFinanceiro(p, index)}</td>
+        <td>${p.dataLancamento || ""}</td>
+        <td>${renderizarBotoesAcao(index)}</td>
+      `;
+    }
 
-    <td></td>
-   <td>${formatarPeso(p.pesoLiquido)}</td>
-   <td>${p.parceiro || ""}</td>
-   <td>${p.numeroDue || ""}</td>
-    <td>${p.responsavelDue === "Exacta" ? "X" : "-"}</td>
-    <td>${p.responsavelDue === "Parceiro" ? "X" : "-"}</td>
-    <td>${p.responsavelCo === "Exacta" ? "X" : "-"}</td>
-    <td>${p.responsavelCo === "Parceiro" ? "X" : "-"}</td>
-    <td>${p.responsavelCo === "Sem C.O" ? "SEM C.O" : (p.lpco || "-")}</td>
-    <td>${renderizarBotaoFinanceiro(p, index)}</td>
-    <td>${p.dataLancamento || ""}</td>
-    <td>${renderizarBotoesAcao(index)}</td>
-  `;
-} else {
-  tr.innerHTML = `
-    <td>${p.empresa || ""}</td>
-    <td>${p.cnpj || ""}</td>
-    <td>${p.quantidade || ""}</td>
-    <td>${formatarData(p.dataAverbacao)}</td>
-    <td>${p.crt || ""}</td>
-    <td>${p.mercadoria || ""}</td>
-    <td>${p.fatura || ""}</td>
-    <td>${p.observacao || ""}</td>
-    <td>${p.numeroVeiculo || ""}</td>
-    <td>${p.transporte || ""}</td>
-    <td>${formatarPeso(p.pesoLiquido)}</td>
-    <td>${p.parceiro || "-"}</td>
-    <td>${p.numeroDue || "-"}</td>
-    <td>${p.responsavelDue || "-"}</td>
-    <td>${p.responsavelCo || "-"}</td>
-    <td>${p.lpco || "-"}</td>
-    <td class="coluna-fora">${p.pais || "-"}</td>
-    <td class="coluna-fora">${p.desembaraco || "-"}</td>
-    <td>${renderizarBotaoFinanceiro(p, index)}</td>
-    <td>${p.dataLancamento || ""}</td>
-    <td>${renderizarBotoesAcao(index)}</td>
-  `;
-}
+    // ===== RELATÓRIO FOZ =====
+    else if (p.aduanaIntegrada) {
+      tr.innerHTML = `
+        <td>${p.empresa || ""}</td>
+        <td>${p.cnpj || ""}</td>
+        <td colspan="4" class="linha-aduana">
+          LIBERAÇÃO VIA ADUANA INTEGRADA
+        </td>
+        <td colspan="3">
+          FATURA: ${p.fatura || "-"}
+        </td>
+        <td></td>
+        <td>${p.pesoLiquido || ""}</td>
+        <td>${p.parceiro || ""}</td>
+        <td>${p.numeroDue || ""}</td>
+        <td>${p.responsavelDue === "Exacta" ? "X" : "-"}</td>
+        <td>${p.responsavelCo === "Exacta" ? "X" : "-"}</td>
+        <td>${p.lpco || "-"}</td>
+        <td>${renderizarBotaoFinanceiro(p, index)}</td>
+        <td>${p.dataLancamento || ""}</td>
+        <td>${renderizarBotoesAcao(index)}</td>
+      `;
+    } else {
+      tr.innerHTML = `
+        <td>${p.empresa || ""}</td>
+        <td>${p.cnpj || ""}</td>
+        <td>${p.quantidade || ""}</td>
+        <td>${formatarData(p.dataAverbacao)}</td>
+        <td>${p.crt || ""}</td>
+        <td>${p.mercadoria || ""}</td>
+        <td>${p.fatura || ""}</td>
+        <td>${p.observacao || ""}</td>
+        <td>${p.numeroVeiculo || ""}</td>
+        <td>${p.transporte || ""}</td>
+        <td>${p.pesoLiquido || ""}</td>
+        <td>${p.parceiro || "-"}</td>
+        <td>${p.numeroDue || "-"}</td>
+        <td>${p.responsavelDue || "-"}</td>
+        <td>${p.responsavelCo || "-"}</td>
+        <td>${p.lpco || "-"}</td>
+        <td>${renderizarBotaoFinanceiro(p, index)}</td>
+        <td>${p.dataLancamento || ""}</td>
+        <td>${renderizarBotoesAcao(index)}</td>
+      `;
+    }
 
-if (
-  p.fracionado === true &&
-  p.aduanaIntegrada !== true &&
-  !tbody.querySelector(`tr[data-fracionado-dia="${diaProcesso}"]`)
-) {
-  const linhaFracionado = document.createElement("tr");
-  linhaFracionado.setAttribute("data-fracionado-dia", diaProcesso);
-
-  linhaFracionado.innerHTML = `
-    <td colspan="20" class="linha-fracionado">
-      FRACIONADO
-    </td>
-  `;
-
-  tbody.appendChild(linhaFracionado);
-}
-
-tbody.appendChild(tr);
-
+    tbody.appendChild(tr);
   });
 
   atualizarDashboard();
@@ -1306,7 +1297,7 @@ function exportarExcel() {
           Parceiro: p.parceiro || "",
           Produto: p.mercadoria || "",
           Veic: p.quantidade || "",
-          Peso: formatarPeso(p.pesoLiquido),
+          Peso: p.pesoLiquido || "",
           "Resp. DU-E": p.responsavelDue || "-",
           "Resp. C.O": p.responsavelCo || "-",
           LPCO: p.lpco || "-"
@@ -1325,7 +1316,7 @@ function exportarExcel() {
         Obs: p.observacao || "",
         Veículo: p.numeroVeiculo || "",
         Transporte: p.transporte || "",
-        Peso: formatarPeso(p.pesoLiquido),
+        Peso: p.pesoLiquido || "",
         Parceiro: p.parceiro || "",
         DUE: p.numeroDue || "",
         "Resp. DU-E": p.responsavelDue || "-",
@@ -1513,7 +1504,7 @@ function exportarPDF() {
       p.parceiro || "-",
       p.mercadoria || "-",
       p.quantidade || "-",
-      formatarPeso(p.pesoLiquido) || "-",
+      p.pesoLiquido || "",
       p.responsavelDue || "-",
       p.responsavelCo || "-",
       p.lpco || "-"
@@ -1530,7 +1521,7 @@ function exportarPDF() {
     p.mercadoria || "-",
     p.fatura || "-",
     p.observacao || "-",
-    formatarPeso(p.pesoLiquido) || "-",
+    p.pesoLiquido || "",
     p.parceiro || "-",
     p.numeroDue || "-",
     p.responsavelDue || "-",
@@ -2204,10 +2195,14 @@ window.entrarRelatorio = async function(tipo) {
         : "🌎 Export System • Relatório Fora de Foz";
   }
 
+  tipoRelatorioAtual = tipo;
+
   await carregarProcessos();
-  await carregarProcessos();
-await carregarReferenciasCadastro();
-};  
+  await carregarReferenciasCadastro();
+
+  tipoRelatorioAtual = tipo;
+  renderizarTabela();
+}; 
 
 function obterProcessosRelatorio() {
   const tipo = document.getElementById("tipoRelatorio").value;
@@ -2362,7 +2357,7 @@ window.baixarBackupLocal = function() {
         Parceiro: p.parceiro || "",
         Produto: p.mercadoria || "",
         Veic: p.quantidade || "",
-        Peso: formatarPeso(p.pesoLiquido),
+        Peso: p.pesoLiquido || "",
         "Resp. DU-E": p.responsavelDue || "-",
         "Resp. C.O": p.responsavelCo || "-",
         LPCO: p.lpco || "-"
@@ -2378,7 +2373,7 @@ window.baixarBackupLocal = function() {
       Mercadoria: p.mercadoria || "",
       Fatura: p.fatura || "",
       Obs: p.observacao || "",
-      Peso: formatarPeso(p.pesoLiquido),
+      Peso: p.pesoLiquido || "",
       Parceiro: p.parceiro || "",
       DUE: p.numeroDue || "",
       "Resp. DU-E": p.responsavelDue || "-",
